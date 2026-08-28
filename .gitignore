@@ -11,6 +11,14 @@ env/
 .DS_Store
 Thumbs.db
 
+# Office lock files
+~$*.xlsx
+~$*.docx
+~$*.pptx
+
+# Generated data
+dataset/*.xlsx
+
 # Environment / secrets
 .env
 
