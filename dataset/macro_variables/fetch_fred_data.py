@@ -28,7 +28,7 @@ ALIGN_RELEASE_DATE = "release_date"
 AGG_MONTHLY_MEAN = "monthly_mean"
 AGG_LATEST_BY_MONTH_END = "latest_by_month_end"
 
-OUTPUT_DIR = "dataset"
+OUTPUT_DIR = "dataset/macro_variables"
 RAW_DIR = os.path.join(OUTPUT_DIR, "raw")
 CLEAN_DIR = os.path.join(OUTPUT_DIR, "clean")
 RAW_COLUMNS = ["date", "realtime_start", "value", "alignment_date"]
