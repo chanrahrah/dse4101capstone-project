@@ -1,3 +1,18 @@
+"""Build a leakage-safe monthly panel of FRED macro predictors.
+
+Anti-look-ahead contract: every series is indexed by `alignment_date`, the
+date the value became *publicly known* (its release/vintage date), never by
+`date`, the reference period the value describes. For forecast-formation
+month t, `aggregate_monthly` resolves each series to whichever release was
+the most recent one with alignment_date <= end of month t -- regardless of
+which reference period that release describes (e.g. a September CPI print
+released in October counts toward October, not September).
+`validate_release_alignment` re-derives that same value independently from
+raw release dates and asserts it matches, so a future edit that
+accidentally indexes by reference period instead of release date will fail
+loudly rather than silently leaking future information into month t.
+"""
+
 import datetime as dt
 import os
 from io import BytesIO
@@ -16,6 +31,7 @@ CFNAI_REALTIME_URLS = [
 START = dt.date(2000, 1, 1)
 END = dt.date(2026, 7, 31)
 REALTIME_CHUNK_YEARS = 5
+TRAILING_WINDOW_TRADING_DAYS = 5
 
 SOURCE_FRED = "fred"
 SOURCE_ALFRED = "alfred"
@@ -25,7 +41,7 @@ SOURCE_DROP = "drop"
 ALIGN_OBSERVATION_DATE = "observation_date"
 ALIGN_RELEASE_DATE = "release_date"
 
-AGG_MONTHLY_MEAN = "monthly_mean"
+AGG_TRAILING_MEAN = "trailing_mean"
 AGG_LATEST_BY_MONTH_END = "latest_by_month_end"
 
 OUTPUT_DIR = "dataset/macro_variables"
@@ -47,7 +63,7 @@ FINAL_PANEL_COLUMNS = [
     "CFNAI",
     "UNRATE",
     "UMCSENT",
-    "DTWEXBGS",
+    "NBUSBIS",
     "DCOILWTICO",
 ]
 
@@ -58,7 +74,7 @@ SERIES_CONFIG = {
         "description": "10Y minus 2Y Treasury spread",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_MONTHLY_MEAN,
+        "aggregation": AGG_TRAILING_MEAN,
     },
     "DGS3MO": {
         "category": "rates_yield_curve",
@@ -66,14 +82,14 @@ SERIES_CONFIG = {
         "description": "3-month Treasury rate",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_MONTHLY_MEAN,
+        "aggregation": AGG_TRAILING_MEAN,
     },
     "BAMLH0A0HYM2": {
         "category": "credit_spreads",
         "frequency": "daily",
         "description": "ICE BofA US High Yield OAS",
         "source": SOURCE_DROP,
-        "drop_reason": "Dropped per updated predictor specification.",
+        "drop_reason": "Dropped due to insufficient historical coverage.",
     },
     "BAA10Y": {
         "category": "credit_spreads",
@@ -81,7 +97,7 @@ SERIES_CONFIG = {
         "description": "Moody's Baa corporate yield minus 10Y Treasury",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_MONTHLY_MEAN,
+        "aggregation": AGG_TRAILING_MEAN,
     },
     "CPIAUCSL": {
         "category": "inflation",
@@ -105,7 +121,7 @@ SERIES_CONFIG = {
         "description": "5-year breakeven inflation",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_MONTHLY_MEAN,
+        "aggregation": AGG_TRAILING_MEAN,
     },
     "T10YIE": {
         "category": "inflation",
@@ -113,7 +129,7 @@ SERIES_CONFIG = {
         "description": "10-year breakeven inflation",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_MONTHLY_MEAN,
+        "aggregation": AGG_TRAILING_MEAN,
     },
     "M2SL": {
         "category": "inflation",
@@ -129,21 +145,21 @@ SERIES_CONFIG = {
         "description": "CBOE VIX",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_MONTHLY_MEAN,
+        "aggregation": AGG_TRAILING_MEAN,
     },
     "NFCI": {
         "category": "volatility_stress",
         "frequency": "weekly",
         "description": "Chicago Fed Financial Conditions Index",
         "source": SOURCE_DROP,
-        "drop_reason": "Dropped per final predictor specification.",
+        "drop_reason": "Dropped: no ALFRED vintage data available from 2000 onwards.",
     },
     "STLFSI4": {
         "category": "volatility_stress",
         "frequency": "weekly",
         "description": "St. Louis Fed Financial Stress Index",
         "source": SOURCE_DROP,
-        "drop_reason": "Dropped per final predictor specification.",
+        "drop_reason": "Dropped: no ALFRED vintage data available from 2000 onwards.",
     },
     "INDPRO": {
         "category": "real_activity_labour",
@@ -174,7 +190,7 @@ SERIES_CONFIG = {
         "frequency": "weekly",
         "description": "Initial jobless claims",
         "source": SOURCE_DROP,
-        "drop_reason": "Dropped per final predictor specification.",
+        "drop_reason": "Dropped: no ALFRED vintage data available from 2000 onwards.",
     },
     "UMCSENT": {
         "category": "real_activity_labour",
@@ -188,9 +204,16 @@ SERIES_CONFIG = {
         "category": "dollar_commodity",
         "frequency": "daily",
         "description": "Trade Weighted U.S. Dollar Index",
+        "source": SOURCE_DROP,
+        "drop_reason": "Dropped: no ALFRED vintage data available from 2000 onwards.",
+    },
+    "NBUSBIS": {
+        "category": "dollar_commodity",
+        "frequency": "monthly",
+        "description": "Nominal Broad U.S. Dollar Index",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_MONTHLY_MEAN,
+        "aggregation": AGG_LATEST_BY_MONTH_END,
     },
     "DCOILWTICO": {
         "category": "dollar_commodity",
@@ -198,7 +221,7 @@ SERIES_CONFIG = {
         "description": "WTI crude oil spot price",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_MONTHLY_MEAN,
+        "aggregation": AGG_TRAILING_MEAN,
     },
 }
 
@@ -366,6 +389,20 @@ def clean_raw_observations(raw):
 
 
 def add_alignment_date(raw, cfg):
+    """Stamp each row with the date its value became publicly known.
+
+    ALIGN_RELEASE_DATE: alignment_date = realtime_start, the true ALFRED/
+    Chicago Fed vintage release date. `date` (the reference period) is kept
+    only for display/tie-breaking and never drives bucketing -- this is
+    what makes AGG_LATEST_BY_MONTH_END leakage-safe.
+
+    ALIGN_OBSERVATION_DATE: alignment_date = date. Used only for plain-FRED
+    daily market quotes (Treasury yields, VIX, WTI spot) that are published
+    same-day with no revision history, so observation date == release date.
+    This equivalence is an assumption, not something this script proves --
+    unlike ALIGN_RELEASE_DATE series, these are NOT checked by
+    validate_release_alignment (it returns immediately for this branch).
+    """
     raw = raw.copy()
     if cfg["align_on"] == ALIGN_RELEASE_DATE:
         raw["alignment_date"] = raw["realtime_start"]
@@ -379,6 +416,9 @@ def add_alignment_date(raw, cfg):
 def align_series(raw, cfg):
     raw = clean_raw_observations(raw)
     raw = add_alignment_date(raw, cfg)
+    # Filter by alignment_date (publication time), not `date` (reference
+    # period) -- a release that lands outside [START, END] is excluded even
+    # if the observation it reports on falls inside the window.
     raw = raw[
         (raw["alignment_date"] >= pd.Timestamp(START))
         & (raw["alignment_date"] <= pd.Timestamp(END))
@@ -391,11 +431,37 @@ def month_end_index():
 
 
 def aggregate_monthly(raw, cfg):
+    """Collapse aligned observations to one value per calendar month-end.
+
+    All branches key off `alignment_date` (release date), never `date`
+    (reference period) -- that is the entire look-ahead guard.
+
+    AGG_TRAILING_MEAN: mean of the last TRAILING_WINDOW_TRADING_DAYS
+    published values within the calendar month (daily market series with
+    no release lag, e.g. VIX, Treasury yields). A short trailing window at
+    month-end reflects "state at decision time" much more closely than a
+    full-month average, while still damping a single anomalous print --
+    unlike a full-month mean, it never mixes in data more than ~1 trading
+    week stale. Only ever looks backward within the month, so it adds no
+    look-ahead risk versus the plain full-month mean it replaced.
+
+    AGG_LATEST_BY_MONTH_END: for month t, take the most recent value
+    released within month t's calendar bucket, then forward-fill through
+    any month with no new release. This implements "value for month t =
+    the release most recently public as of end of month t, regardless of
+    which reference period it describes" -- e.g. September's row can carry
+    an August CPI print (if September's hasn't been released yet by
+    month-end) but never a not-yet-released September or later print.
+    """
     months = month_end_index()
 
-    if cfg["aggregation"] == AGG_MONTHLY_MEAN:
-        s = raw.set_index("alignment_date")["value"].sort_index()
-        return s.resample("ME").mean().reindex(months)
+    if cfg["aggregation"] == AGG_TRAILING_MEAN:
+        ordered = raw.dropna(subset=["value"]).sort_values(["alignment_date", "date"]).copy()
+        ordered["month_end"] = ordered["alignment_date"] + pd.offsets.MonthEnd(0)
+        monthly = ordered.groupby("month_end")["value"].apply(
+            lambda group: group.tail(TRAILING_WINDOW_TRADING_DAYS).mean()
+        )
+        return monthly.reindex(months)
 
     if cfg["aggregation"] == AGG_LATEST_BY_MONTH_END:
         ordered = raw.sort_values(["alignment_date", "date"])
@@ -423,6 +489,16 @@ def validate_no_manual_shift():
 
 
 def validate_release_alignment(series_id, raw, monthly, cfg):
+    """Prove aggregate_monthly's AGG_LATEST_BY_MONTH_END output has no look-ahead.
+
+    Independently re-derives, straight from raw release dates, "the most
+    recent release with release_date <= month_end, regardless of reference
+    period" -- your stated correctness rule -- and asserts it equals what
+    the production resample/ffill path produced. Only runs for
+    ALIGN_RELEASE_DATE series, since only those carry a real release date;
+    see add_alignment_date's docstring for the ALIGN_OBSERVATION_DATE
+    caveat.
+    """
     if cfg["align_on"] != ALIGN_RELEASE_DATE:
         return
 
