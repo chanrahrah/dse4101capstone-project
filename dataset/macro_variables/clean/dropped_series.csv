@@ -4,3 +4,4 @@ NFCI,volatility_stress,weekly,Chicago Fed Financial Conditions Index,Dropped: no
 STLFSI4,volatility_stress,weekly,St. Louis Fed Financial Stress Index,Dropped: no ALFRED vintage data available from 2000 onwards.
 ICSA,real_activity_labour,weekly,Initial jobless claims,Dropped: no ALFRED vintage data available from 2000 onwards.
 DTWEXBGS,dollar_commodity,daily,Trade Weighted U.S. Dollar Index,Dropped: no ALFRED vintage data available from 2000 onwards.
+NBUSBIS,dollar_commodity,monthly,Nominal Broad U.S. Dollar Index,Dropped: no ALFRED vintage data available from 2000 onwards.

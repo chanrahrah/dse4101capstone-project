@@ -19,6 +19,18 @@ from io import BytesIO
 
 import pandas as pd
 import requests
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file
+load_dotenv()
+
+# Access the API key safely
+fred_api_key = os.getenv("FRED_API_KEY")
+
+if not fred_api_key:
+    raise RuntimeError("FRED API Key not found!")
+print(f"Successfully loaded FRED API key: {fred_api_key[:5]}...") 
 
 
 FRED_OBSERVATIONS_URL = "https://api.stlouisfed.org/fred/series/observations"
@@ -63,7 +75,6 @@ FINAL_PANEL_COLUMNS = [
     "CFNAI",
     "UNRATE",
     "UMCSENT",
-    "NBUSBIS",
     "DCOILWTICO",
 ]
 
@@ -211,9 +222,8 @@ SERIES_CONFIG = {
         "category": "dollar_commodity",
         "frequency": "monthly",
         "description": "Nominal Broad U.S. Dollar Index",
-        "source": SOURCE_FRED,
-        "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_LATEST_BY_MONTH_END,
+        "source": SOURCE_DROP,
+        'drop_reason': "Dropped: no ALFRED vintage data available from 2000 onwards.",
     },
     "DCOILWTICO": {
         "category": "dollar_commodity",
