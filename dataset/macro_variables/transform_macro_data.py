@@ -11,7 +11,7 @@ Kept (12 variables, 6 channels):
     Credit spreads       BAA10Y                     -- single series
     Inflation            CPIAUCSL, T5YIE,
                          T5YIE - T10YIE (engineered)
-    Vol/stress           VIXCLS                     -- single series
+    Vol/stress           VIXCLS, USEPUINDXM                    -- single series
     Real activity        INDPRO, UNRATE, UMCSENT
     Dollar/commodity     DCOILWTICO, NBUSBIS, DEXUSEU
 
@@ -40,7 +40,7 @@ ADF_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "adf_test_results.csv")
 ADF_SIGNIFICANCE = 0.05
 
 DROP_NOW = ["PCEPI", "M2SL", "CFNAI"]
-LOG_DIFF_VARS = ["CPIAUCSL", "INDPRO", "DCOILWTICO", "DEXUSEU"]
+LOG_DIFF_VARS = ["CPIAUCSL", "INDPRO", "DCOILWTICO", "DEXUSEU", "USEPUINDXM"]
 START_DATE = pd.Timestamp("2003-01-31") # to follow the first month-end with T5YIE/T10YIE vintage data
 
 FINAL_COLUMNS = [
@@ -55,7 +55,8 @@ FINAL_COLUMNS = [
     "UNRATE",
     "UMCSENT",
     "DCOILWTICO",
-    "DEXUSEU",
+    "DEXUSEU", 
+    "USEPUINDXM",
     ]
 
 
