@@ -76,6 +76,7 @@ FINAL_PANEL_COLUMNS = [
     "UNRATE",
     "UMCSENT",
     "DCOILWTICO",
+    "DEXUSEU",
 ]
 
 SERIES_CONFIG = {
@@ -229,6 +230,14 @@ SERIES_CONFIG = {
         "category": "dollar_commodity",
         "frequency": "daily",
         "description": "WTI crude oil spot price",
+        "source": SOURCE_FRED,
+        "align_on": ALIGN_OBSERVATION_DATE,
+        "aggregation": AGG_TRAILING_MEAN,
+    },
+       "DEXUSEU": {
+        "category": "dollar_commodity",
+        "frequency": "daily",
+        "description": "U.S. Dollars to Euro Spot Exchange Rate",
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
         "aggregation": AGG_TRAILING_MEAN,
