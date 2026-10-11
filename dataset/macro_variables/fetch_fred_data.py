@@ -77,7 +77,6 @@ FINAL_PANEL_COLUMNS = [
     "UMCSENT",
     "DCOILWTICO",
     "DEXUSEU",
-    "USEPUINDXD",
 ]
 
 SERIES_CONFIG = {
@@ -242,15 +241,6 @@ SERIES_CONFIG = {
         "source": SOURCE_FRED,
         "align_on": ALIGN_OBSERVATION_DATE,
         "aggregation": AGG_TRAILING_MEAN,
-    },
-        "USEPUINDXD": {
-        "category": "volatility_stress",
-        "frequency": "monthly",
-        "description": "US Economic Policy Uncertainty Index (Monthly)",
-        "source": SOURCE_FRED,
-        "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_LATEST_BY_MONTH_END,
-        "window": 20,
     },
 }
 
