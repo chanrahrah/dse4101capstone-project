@@ -56,7 +56,6 @@ FINAL_COLUMNS = [
     "UMCSENT",
     "DCOILWTICO",
     "DEXUSEU", 
-    "USEPUINDXD",
     ]
 
 
