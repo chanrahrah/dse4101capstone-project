@@ -1,0 +1,13 @@
+pair,block,question,a,b,isolates,QLIKE gain %,forecast,ΔSR,portfolio (fixed),portfolio (expanding),same result,same direction
+B0.1,B0,Volatility-timing baseline,garch,hist_rw,fitted GARCH vs naive history,35.167434973152105,a better (+4.00***),0.028813896318797,n.s. (+0.029),n.s. (+0.005),False,True
+B0.2,B0,Volatility-timing baseline,ols_1m,hist_rw,fitted AR(1) on log RV vs naive history,19.63892456423653,a better (+3.26***),-0.014347710146599,n.s. (-0.014),n.s. (-0.010),False,False
+B1.1,B1,GARCH family,garch_midas_baa10y,garch,credit spread (BAA10Y) as the long-run component,-1.125676816088867,a worse (-1.85*),-0.0028420909294967,n.s. (-0.003),n.s. (+0.000),False,True
+B2.1,B2,Macro information in a linear model,en_full_macro,ols_1m,total effect of macro + VIX,0.5852886332171647,n.s. (+0.08),-0.054675635951516,n.s. (-0.055),n.s. (-0.054),True,False
+B3.1,B3,"Effect of VIX, Elastic Net",en_full_macro,en_no_vix,VIX on top of the other macro variables,14.5038473059539,n.s. (+1.46),-0.0171059482667547,n.s. (-0.017),n.s. (-0.011),True,False
+B4.0,B4,"Effect of VIX, XGBoost (robustness check for B3)",xgb_full_macro,xgb_no_macro,total effect of macro + VIX,-2.2494175812964143,n.s. (-0.33),-0.0911089203194975,a worse (-0.091*),a worse (-0.106**),False,True
+B4.1,B4,"Effect of VIX, XGBoost (robustness check for B3)",xgb_full_macro,xgb_no_vix,VIX on top of the other macro variables,6.9373093242802035,n.s. (+0.96),-0.0608774805193606,n.s. (-0.061),n.s. (-0.051),True,False
+B4.2,B4,"Effect of VIX, XGBoost (robustness check for B3)",xgb_vix_only,xgb_no_macro,VIX on its own,6.389238746279381,a better (+2.17**),-0.0244123470113375,n.s. (-0.024),a worse (-0.073**),False,False
+B4.3,B4,"Effect of VIX, XGBoost (robustness check for B3)",xgb_full_macro,xgb_vix_only,other macro variables on top of VIX,-9.228272702709637,n.s. (-1.49),-0.0666965733081599,a worse (-0.067*),n.s. (-0.033),False,True
+B5.1,B5,Non-linearity,xgb_no_macro,en_no_macro,no macro,-18.793159664751265,n.s. (-1.25),-0.0252517347520706,n.s. (-0.025),n.s. (-0.027),True,True
+B5.2,B5,Non-linearity,xgb_no_vix,en_no_vix,macro without VIX,-12.249257418657686,n.s. (-1.40),-0.0178719669102083,n.s. (-0.018),n.s. (-0.039),True,True
+B5.4,B5,Non-linearity,xgb_full_macro,en_full_macro,full macro + VIX,-22.18348536821652,n.s. (-1.40),-0.0616434991628143,n.s. (-0.062),n.s. (-0.079),True,True
