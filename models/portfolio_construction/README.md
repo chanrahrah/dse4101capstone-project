@@ -54,20 +54,15 @@ means the addition helps: a has the higher Sharpe ratio, or the lower forecast l
 
 | Block | Question | Pairs (a vs b) |
 |---|---|---|
-| B0 | Does simple volatility timing beat BH, and does fitting a historical model improve on it? | B0.1 `garch` vs `hist_rw` · B0.2 `ols_1m` vs `hist_rw` |
+| B0 | Does simple volatility timing beat BH, and does fitting a historical model improve on it? | B0.1 `garch` vs `hist_rw` |
 | B1 | Does macro help within GARCH? | B1.1 `garch_midas_baa10y` vs `garch` |
-| B2 | Do macro + VIX help a linear model over HAR? | B2.1 `en_full_macro` vs `ols_1m` |
-| B3 | Effect of VIX in Elastic Net: is VIX doing all the work? | B3.1 `en_full_macro` vs `en_no_vix` · B3.2 `en_vix_only` vs `en_no_macro` ⏸ · B3.3 `en_full_macro` vs `en_vix_only` ⏸ |
+| B2 | Do macro + VIX help a linear model that uses only past volatility? | B2.1 `en_full_macro` vs `en_no_macro` |
+| B3 | Effect of VIX in Elastic Net: is VIX doing all the work? | B3.1 `en_full_macro` vs `en_no_vix` · B3.2 `en_vix_only` vs `en_no_macro` · B3.3 `en_full_macro` vs `en_vix_only` |
 | B4 | Effect of VIX in XGBoost (robustness check for B3) | B4.0 `xgb_full_macro` vs `xgb_no_macro` · B4.1 `xgb_full_macro` vs `xgb_no_vix` · B4.2 `xgb_vix_only` vs `xgb_no_macro` · B4.3 `xgb_full_macro` vs `xgb_vix_only` |
-| B5 | With the same information, does XGBoost beat Elastic Net? | B5.1 no macro · B5.2 macro without VIX · B5.3 VIX only ⏸ · B5.4 full macro |
+| B5 | With the same information, does XGBoost beat Elastic Net? | B5.1 no macro · B5.2 macro without VIX · B5.3 VIX only · B5.4 full macro |
 
-⏸ needs `en_vix_only`, which is not in the Elastic Net forecast file yet. Until it is, 01 prints a
-notice and skips those pairs. Once its forecasts are added to
-`models/forecasting/forecasts/en_forecasts_expanding_tidy.csv`, rerun 01 → 03 and the pairs are
-included with no code changes.
-
-`en_no_macro` is built but left out of B2 and of the ranks in 03, because its forecasts are
-identical to `ols_1m`'s (correlation 0.9999997).
+A model missing from its forecast file is skipped with a notice by 01, together with the pairs that
+use it.
 
 ## Method
 
@@ -91,11 +86,18 @@ identical to `ols_1m`'s (correlation 0.9999997).
 | Notebook | Sections | Tests |
 |---|---|---|
 | 01 | Load forecasts and returns; check the date alignment; σ̄² under both specifications; build every portfolio and the control; weight diagnostics; save | none |
-| 02 | **A** cyclical bucket: overview, one section per block (table against BH and `hist_rw`, pair tests, growth plot, verdicts, interpretation), scoreboard. **B** per ETF: heatmaps against the benchmarks and for the pairs, full tables. **C** expanding σ̄²: do the pair results hold; timing vs re-levering (control regressions) | Ledoit-Wolf (2008) SR tests; α on BH (Newey-West) |
-| 03 | **1** forecast losses and the largest misses; **2** DM tests for every pair; **3** pair-level link (forecast t against portfolio t); **4** block verdicts; **5** ranks; **6** why gains do or do not carry through: scale, weight distance and cap, calm vs stress months | Diebold-Mariano with the HLN correction; Spearman ρ |
+| 02 | **A** cyclical bucket: overview, one section per block (table against BH and `hist_rw`, pair tests, growth plot, verdicts), scoreboard. **B** per ETF: heatmaps against the benchmarks and for the pairs, full tables. **C** expanding σ̄²: do the pair results hold; timing vs re-levering (control regressions) | Ledoit-Wolf (2008) SR tests; α on BH (Newey-West) |
+| 03 | Links e6 (forecast) and 02 (portfolio), each model against `hist_rw`: **1** pair-level link (forecast t against Ledoit-Wolf t); **2** ranks (forecast rank vs Sharpe ratio rank); **3** why gains do or do not carry through: scale, weight distance and cap, calm vs stress months | none new (reads e6 and 02); Spearman ρ |
 
-The interpretation cells in 02 and 03 describe the run of 2026-10-28 (without `en_vix_only`).
-Revisit them if the forecasts or settings change.
+The full forecast evaluation is in `models/forecasting/evaluation/`. Forecast accuracy against
+`hist_rw` is `e6_overall_comparison_to_benchmark.ipynb` (DM for the non-nested models, Clark-West
+for Elastic Net, which nests `hist_rw`); run it before 03, which reads `forecasting/results/e6_tests.csv`.
+03 runs no tests of its own.
+
+The interpretation of the results is in [interpretation.md](interpretation.md), written for the
+run of 2026-10-29 (forecast files `hist_rw_forecasts.csv`, `garch_forecasts.csv`,
+`ols_forecasts_expanding_tidy.csv`, `en_forecasts.csv`, `xgb_forecasts_expanding_tidy.csv`).
+Revisit it if the forecasts or settings change.
 
 ## Outputs (`results/eval/`)
 
@@ -106,12 +108,9 @@ Revisit them if the forecasts or settings change.
 | `pairs.csv` | 02 | Every block-pair LW test (spec, block, pair, a, b, ETF) |
 | `scoreboard_bucket.csv` | 02 | Portfolio answer per pair, both specifications |
 | `extension.csv` | 02 | Control regressions under the expanding σ̄² |
-| `forecast_losses.csv` | 03 | QLIKE, MSE_log, MSE_level per model and ETF |
-| `dm_tests.csv` | 03 | Every DM test (loss, pair, ETF/bucket) |
-| `forecast_portfolio_link.csv` | 03 | Forecast and portfolio test for every pair and unit |
-| `block_verdicts.csv` | 03 | Forecast and portfolio answer per pair: the table for the report |
+| `forecast_portfolio_link.csv` | 03 | Forecast (e6) and portfolio (02) result of every model against `hist_rw`, per unit |
 | `rank_summary_<spec>.csv` | 03 | Best models and Spearman ρ, with the scale-free version |
-| `pair_diagnostics.csv` | 03 | Weight distance, cap and calm/stress results per pair |
+| `pair_diagnostics.csv` | 03 | Weight distance, cap and calm/stress results per model against `hist_rw` |
 
 ## Adding a model or a comparison
 

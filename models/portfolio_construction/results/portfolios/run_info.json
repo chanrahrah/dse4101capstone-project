@@ -7,12 +7,10 @@
       "garch",
       "garch_midas_baa10y"
     ],
-    "HAR OLS": [
-      "ols_1m"
-    ],
     "Elastic Net": [
       "en_no_macro",
       "en_no_vix",
+      "en_vix_only",
       "en_full_macro"
     ],
     "XGBoost": [
@@ -26,9 +24,9 @@
     "hist_rw",
     "garch",
     "garch_midas_baa10y",
-    "ols_1m",
     "en_no_macro",
     "en_no_vix",
+    "en_vix_only",
     "en_full_macro",
     "xgb_no_macro",
     "xgb_no_vix",
@@ -45,13 +43,6 @@
       "isolates": "fitted GARCH vs naive history"
     },
     {
-      "pair": "B0.2",
-      "block": "B0",
-      "a": "ols_1m",
-      "b": "hist_rw",
-      "isolates": "fitted AR(1) on log RV vs naive history"
-    },
-    {
       "pair": "B1.1",
       "block": "B1",
       "a": "garch_midas_baa10y",
@@ -62,7 +53,7 @@
       "pair": "B2.1",
       "block": "B2",
       "a": "en_full_macro",
-      "b": "ols_1m",
+      "b": "en_no_macro",
       "isolates": "total effect of macro + VIX"
     },
     {
@@ -71,6 +62,20 @@
       "a": "en_full_macro",
       "b": "en_no_vix",
       "isolates": "VIX on top of the other macro variables"
+    },
+    {
+      "pair": "B3.2",
+      "block": "B3",
+      "a": "en_vix_only",
+      "b": "en_no_macro",
+      "isolates": "VIX on its own"
+    },
+    {
+      "pair": "B3.3",
+      "block": "B3",
+      "a": "en_full_macro",
+      "b": "en_vix_only",
+      "isolates": "other macro variables on top of VIX"
     },
     {
       "pair": "B4.0",
@@ -115,6 +120,13 @@
       "isolates": "macro without VIX"
     },
     {
+      "pair": "B5.3",
+      "block": "B5",
+      "a": "xgb_vix_only",
+      "b": "en_vix_only",
+      "isolates": "VIX only"
+    },
+    {
       "pair": "B5.4",
       "block": "B5",
       "a": "xgb_full_macro",
@@ -122,32 +134,7 @@
       "isolates": "full macro + VIX"
     }
   ],
-  "skipped_pairs": [
-    {
-      "pair": "B3.2",
-      "block": "B3",
-      "a": "en_vix_only",
-      "b": "en_no_macro",
-      "isolates": "VIX on its own",
-      "missing": "en_vix_only"
-    },
-    {
-      "pair": "B3.3",
-      "block": "B3",
-      "a": "en_full_macro",
-      "b": "en_vix_only",
-      "isolates": "other macro variables on top of VIX",
-      "missing": "en_vix_only"
-    },
-    {
-      "pair": "B5.3",
-      "block": "B5",
-      "a": "xgb_vix_only",
-      "b": "en_vix_only",
-      "isolates": "VIX only",
-      "missing": "en_vix_only"
-    }
-  ],
+  "skipped_pairs": [],
   "specs": [
     "fixed",
     "expanding"

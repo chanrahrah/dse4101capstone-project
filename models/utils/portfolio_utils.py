@@ -29,10 +29,9 @@ BH = "BH"             # name of the buy-and-hold benchmark in the result tables
 # One tidy forecast file per model family. Columns: model, etf, date, actual_logRV, actual_RV,
 # fc_log, sigma2, fc_level. The `model` column holds the variant (e.g. en_full_macro).
 FORECAST_FILES = {
-    "Historical": "hist_rw_forecasts_tidy.csv",
-    "Garch": "garch_forecasts_expanding_tidy.csv",
-    "HAR OLS": "ols_forecasts_expanding_tidy.csv",
-    "Elastic Net": "en_forecasts_expanding_tidy.csv",
+    "Historical": "hist_rw_forecasts.csv",
+    "Garch": "garch_forecasts.csv",
+    "Elastic Net": "en_forecasts.csv",
     "XGBoost": "xgb_forecasts_expanding_tidy.csv",
 }
 
