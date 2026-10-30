@@ -17,11 +17,10 @@ TRAIN_MONTHS = 60          # training window 2003-03 to 2008-02; out-of-sample i
 # Model family (a key of FORECAST_FILES in utils/portfolio_utils.py) -> variants (values of the
 # `model` column). A variant that is not yet in its forecast file is skipped with a notice, and so
 # are the pairs that use it. Every variant must have a forecast for the first out-of-sample month
-# (2008-03): ols_1_3_12m and the *_har Elastic Net variants start in 2009-02, so they are left out.
+# (2008-03): the *_har Elastic Net variants start in 2009-02, so they are left out.
 SELECTED = {
     "Historical": ["hist_rw"],
     "Garch": ["garch", "garch_midas_baa10y"],
-    "HAR OLS": ["ols_1m"],
     "Elastic Net": ["en_no_macro", "en_no_vix", "en_vix_only", "en_full_macro"],
     "XGBoost": ["xgb_no_macro", "xgb_no_vix", "xgb_vix_only", "xgb_full_macro"],
 }
@@ -40,10 +39,9 @@ BLOCKS = {
         "title": "Volatility-timing baseline",
         "question": "Does the simplest volatility timing beat buy-and-hold, and does fitting a "
                     "historical-volatility model improve on it?",
-        "models": ["hist_rw", "garch", "ols_1m"],
+        "models": ["hist_rw", "garch"],
         "pairs": [
             ("B0.1", "garch", "hist_rw", "fitted GARCH vs naive history"),
-            ("B0.2", "ols_1m", "hist_rw", "fitted AR(1) on log RV vs naive history"),
         ],
     },
     "B1": {
@@ -56,11 +54,10 @@ BLOCKS = {
     },
     "B2": {
         "title": "Macro information in a linear model",
-        "question": "Do macro variables plus VIX help over the historical HAR benchmark?",
-        # en_no_macro is left out: its forecasts are identical to ols_1m's (correlation 0.9999997)
-        "models": ["ols_1m", "en_full_macro"],
+        "question": "Do macro variables plus VIX help a linear model that uses only past volatility?",
+        "models": ["en_no_macro", "en_full_macro"],
         "pairs": [
-            ("B2.1", "en_full_macro", "ols_1m", "total effect of macro + VIX"),
+            ("B2.1", "en_full_macro", "en_no_macro", "total effect of macro + VIX"),
         ],
     },
     "B3": {

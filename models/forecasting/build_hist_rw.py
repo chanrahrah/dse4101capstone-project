@@ -17,7 +17,7 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RV_PATH = PROJECT_ROOT / "dataset" / "price" / "clean" / "realized_variance.csv"
-OUT_PATH = Path(__file__).resolve().parent / "forecasts" / "hist_rw_forecasts_tidy.csv"
+OUT_PATH = Path(__file__).resolve().parent / "forecasts" / "hist_rw_forecasts.csv"
 
 MODEL = "hist_rw"
 # Same forecast origins as the other forecast files: 2008-02 (for holding month 2008-03) onwards
