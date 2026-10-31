@@ -40,7 +40,6 @@
     "RESULTS_DIR.mkdir(exist_ok=True)\n",
     "\n",
     "# Pairs are (pair_id, a, b, question). a = XGBoost, b = Elastic Net, so \"a beats b\" = non-linearity helps.\n",
-    "# Defined here because I do not know whether research_config.BLOCKS has an entry for e5.\n",
     "block = {\n",
     "    \"models\": [\"en_full_macro\", \"xgb_full_macro\", \"en_vix_only\", \"xgb_vix_only\", \"en_no_vix\", \"xgb_no_vix\"],\n",
     "    \"pairs\": [\n",
