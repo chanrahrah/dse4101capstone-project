@@ -14,19 +14,20 @@ Inputs:
     raw/risk_free_rate_returns.csv  daily risk-free rate series
 
 Output:
-    clean/daily_returns_panel.csv
+    clean/daily_returns_panel_ver2.csv
 """
 
 import os
+from pathlib import Path
 
 import pandas as pd
 
-RAW_DIR = "dataset/price/raw"
-CLEAN_DIR = "dataset/price/clean"
+RAW_DIR = Path(__file__).resolve().parent / "raw"
+CLEAN_DIR = Path(__file__).resolve().parent / "clean"
 
 PRICE_FILE = f"{RAW_DIR}/sector_etf_prices_with_xlre.csv"
 RF_FILE = f"{RAW_DIR}/risk_free_rate_returns.csv"
-OUT_FILE = f"{CLEAN_DIR}/daily_returns_panel.csv"
+OUT_FILE = f"{CLEAN_DIR}/daily_returns_panel_ver2.csv"
 
 EXPECTED_TICKERS = ["XLI", "XLB", "XLE", "XLY", "XLF", "XLRE", "XLU", "XLP", "XLV"]
 

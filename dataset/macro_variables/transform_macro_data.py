@@ -6,14 +6,17 @@ onwards (NFCI, STLFSI4, ICSA, DTWEXBGS). This script performs a second,
 economics-driven narrowing pass -- reducing collinearity within each FRED
 channel -- per Dataset.pdf.
 
-Kept (12 variables, 6 channels):
+All predictors, including oil, come from the monthly panel produced by
+fetch_fred_data.py. Run that script before this one to refresh the API inputs.
+
+Kept (11 variables, 6 channels):
     Rates/yield curve    T10Y2Y, DGS3MO            -- level vs slope, not collinear
     Credit spreads       BAA10Y                     -- single series
     Inflation            CPIAUCSL, T5YIE,
                          T5YIE - T10YIE (engineered)
-    Vol/stress           VIXCLS, USEPUINDXD                    -- single series
+    Vol/stress           VIXCLS                     -- single series
     Real activity        INDPRO, UNRATE, UMCSENT
-    Dollar/commodity     DCOILWTICO, NBUSBIS, DEXUSEU
+    Commodity            DCOILWTICO
 
 Dropped (4 variables):
     PCEPI  -- redundant with CPIAUCSL (corr > 0.9); slower to publish and
@@ -27,20 +30,22 @@ Dropped (4 variables):
               3-4 week publication lag, the worst of any real-activity candidate
 """
 
-import os
+import argparse
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.stattools import adfuller
 
-PANEL_PATH = "dataset/macro_variables/clean/fred_monthly_panel.csv"
-OUTPUT_DIR = "dataset/macro_variables/final_clean"
-OUTPUT_PATH = os.path.join(OUTPUT_DIR, "final_macro_data.csv")
-ADF_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "adf_test_results.csv")
+DATA_DIR = Path(__file__).resolve().parent
+PANEL_PATH = DATA_DIR / "clean/fred_monthly_panel.csv"
+OUTPUT_DIR = DATA_DIR / "final_clean"
+OUTPUT_PATH = OUTPUT_DIR / "final_macro_data.csv"
+ADF_OUTPUT_PATH = OUTPUT_DIR / "adf_test_results.csv"
 ADF_SIGNIFICANCE = 0.05
 
 DROP_NOW = ["PCEPI", "M2SL", "CFNAI"]
-LOG_DIFF_VARS = ["CPIAUCSL", "INDPRO", "DCOILWTICO", "DEXUSEU", "USEPUINDXD"]
+LOG_DIFF_VARS = ["CPIAUCSL", "INDPRO", "DCOILWTICO"]
 START_DATE = pd.Timestamp("2003-01-31") # to follow the first month-end with T5YIE/T10YIE vintage data
 
 FINAL_COLUMNS = [
@@ -55,12 +60,17 @@ FINAL_COLUMNS = [
     "UNRATE",
     "UMCSENT",
     "DCOILWTICO",
-    "DEXUSEU", 
-    ]
+]
 
 
 def load_panel():
-    return pd.read_csv(PANEL_PATH, index_col="date", parse_dates=True)
+    panel = pd.read_csv(PANEL_PATH, index_col="date", parse_dates=True).sort_index()
+    if panel.empty or panel.index.hasnans or panel.index.has_duplicates:
+        raise ValueError("Monthly macro dates must be present and unique.")
+    expected = pd.date_range(panel.index.min(), panel.index.max(), freq="ME")
+    if not panel.index.equals(expected):
+        raise ValueError("Macro panel must contain consecutive calendar month ends.")
+    return panel
 
 
 def drop_redundant_channels(panel):
@@ -99,6 +109,8 @@ def apply_transformations(df):
     """
     df = df.copy()
     for col in LOG_DIFF_VARS:
+        if (df[col].dropna() <= 0).any():
+            raise ValueError(f"{col} must be positive before taking logarithms.")
         df[col] = np.log(df[col]).diff()
     return df
 
@@ -107,34 +119,35 @@ def slice_to_start_date(df):
     """Step 4: slice to 2003-01-31, the first month-end with T5YIE/T10YIE vintage data."""
     final = df.loc[df.index >= START_DATE].copy()
 
-    missing = final.isna().sum()
-    missing = missing[missing > 0]
-    if not missing.empty:
-        print("Columns with remaining missing values after slicing to START_DATE:")
-        print(missing)
-    else:
-        print("No missing values in the final panel.")
+    if not np.isfinite(final[FINAL_COLUMNS].to_numpy()).all():
+        raise ValueError(
+            "Final predictors contain missing or non-finite values. "
+            "Check the fetched monthly panel coverage."
+        )
 
+    print("No missing values in the final panel.")
     return final
 
 
-def save_final_panel(final):
+def save_final_panel(final, output_dir=OUTPUT_DIR):
     final = final[FINAL_COLUMNS]
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    final.to_csv(OUTPUT_PATH)
-    print(f"Saved {OUTPUT_PATH} with columns: {list(final.columns)}")
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "final_macro_data.csv"
+    final.to_csv(output_path)
+    print(f"Saved {output_path} with columns: {list(final.columns)}")
     return final
 
 
-def run_adf_tests(final):
+def run_adf_tests(final, output_dir=OUTPUT_DIR):
     """Step 6: ADF stationarity check on every final variable.
 
     This is diagnostic, not a second pass at picking representations --
-    We deliberately keeps several variables (T10Y2Y, DGS3MO,
+    We deliberately keep several variables (T10Y2Y, DGS3MO,
     T5YIE, T5YIE_MINUS_T10YIE) as levels even though they may read as
     non-stationary, because the level *is* the economically meaningful
-    object (see apply_transformations' docstring). A rejected null here
-    just documents that regime-like persistence, it isn't a signal to
+    object (see apply_transformations' docstring). A failure to reject the null
+    documents that regime-like persistence, it isn't a signal to
     re-difference those series.
     """
     rows = []
@@ -152,23 +165,31 @@ def run_adf_tests(final):
         )
 
     results = pd.DataFrame(rows).set_index("variable")
-    results.to_csv(ADF_OUTPUT_PATH)
-    print(f"\nSaved {ADF_OUTPUT_PATH}")
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    adf_output_path = output_dir / "adf_test_results.csv"
+    results.to_csv(adf_output_path)
+    print(f"\nSaved {adf_output_path}")
     print("\n=== ADF stationarity test (H0: unit root / non-stationary) ===")
     print(results)
     return results
 
 
-def main():
+def main(output_dir=OUTPUT_DIR):
     panel = load_panel()
     df = drop_redundant_channels(panel)
     df = engineer_inflation_curve_spread(df)
     df = apply_transformations(df)
     final = slice_to_start_date(df)
-    final = save_final_panel(final)
+    final = save_final_panel(final, output_dir)
     print(final.describe())
-    run_adf_tests(final)
+    run_adf_tests(final, output_dir)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output-dir", type=Path, default=OUTPUT_DIR,
+        help="Directory for the macro panel and ADF results (default: final_clean).",
+    )
+    main(parser.parse_args().output_dir)

@@ -11,10 +11,12 @@ Output:
     clean/daily_returns_panel.csv
 """
 
+from pathlib import Path
+
 import pandas as pd
 
-RAW_DIR = "dataset/price/raw"
-CLEAN_DIR = "dataset/price/clean"
+RAW_DIR = Path(__file__).resolve().parent / "raw"
+CLEAN_DIR = Path(__file__).resolve().parent / "clean"
 
 PRICE_FILE = f"{RAW_DIR}/sector_etf_prices.csv"
 RF_FILE = f"{RAW_DIR}/risk_free_rate_returns.csv"
@@ -213,6 +215,7 @@ panel.index.name = "date"
 
 import os
 os.makedirs(CLEAN_DIR, exist_ok=True)
+CLEAN_DIR.mkdir(parents=True, exist_ok=True)
 panel.to_csv(OUT_FILE)
 
 section("FINAL SUMMARY")

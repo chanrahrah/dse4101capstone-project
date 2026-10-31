@@ -21,6 +21,8 @@ dataset/*.xlsx
 
 # Environment / secrets
 .env
+.env.*
+!.env.example
 
 # Editor
 .vscode/

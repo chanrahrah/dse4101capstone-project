@@ -16,21 +16,11 @@ loudly rather than silently leaking future information into month t.
 import datetime as dt
 import os
 from io import BytesIO
+from pathlib import Path
 
 import pandas as pd
 import requests
-import os
 from dotenv import load_dotenv
-
-# Load environment variables from the .env file
-load_dotenv()
-
-# Access the API key safely
-fred_api_key = os.getenv("FRED_API_KEY")
-
-if not fred_api_key:
-    raise RuntimeError("FRED API Key not found!")
-print(f"Successfully loaded FRED API key: {fred_api_key[:5]}...") 
 
 
 FRED_OBSERVATIONS_URL = "https://api.stlouisfed.org/fred/series/observations"
@@ -56,7 +46,7 @@ ALIGN_RELEASE_DATE = "release_date"
 AGG_TRAILING_MEAN = "trailing_mean"
 AGG_LATEST_BY_MONTH_END = "latest_by_month_end"
 
-OUTPUT_DIR = "dataset/macro_variables"
+OUTPUT_DIR = Path(__file__).resolve().parent
 RAW_DIR = os.path.join(OUTPUT_DIR, "raw")
 CLEAN_DIR = os.path.join(OUTPUT_DIR, "clean")
 RAW_COLUMNS = ["date", "realtime_start", "value", "alignment_date"]
@@ -76,7 +66,6 @@ FINAL_PANEL_COLUMNS = [
     "UNRATE",
     "UMCSENT",
     "DCOILWTICO",
-    "DEXUSEU",
 ]
 
 SERIES_CONFIG = {
@@ -234,14 +223,6 @@ SERIES_CONFIG = {
         "align_on": ALIGN_OBSERVATION_DATE,
         "aggregation": AGG_TRAILING_MEAN,
     },
-       "DEXUSEU": {
-        "category": "dollar_commodity",
-        "frequency": "daily",
-        "description": "U.S. Dollars to Euro Spot Exchange Rate",
-        "source": SOURCE_FRED,
-        "align_on": ALIGN_OBSERVATION_DATE,
-        "aggregation": AGG_TRAILING_MEAN,
-    },
 }
 
 CATEGORY_OUTPUTS = [
@@ -255,6 +236,7 @@ CATEGORY_OUTPUTS = [
 
 
 def get_fred_api_key():
+    load_dotenv(OUTPUT_DIR.parents[1] / ".env")
     api_key = os.getenv("FRED_API_KEY")
     if not api_key:
         raise RuntimeError(
