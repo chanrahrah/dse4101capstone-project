@@ -1,0 +1,61 @@
+comparison,loss,ETF,pct_change
+Full (macro + VIX) vs no macro,MSE_log,XLB,-16.475240117627777
+Full (macro + VIX) vs no macro,MSE_log,XLE,-6.951485637766686
+Full (macro + VIX) vs no macro,MSE_log,XLF,-15.486743834128557
+Full (macro + VIX) vs no macro,MSE_log,XLI,-21.256396080266637
+Full (macro + VIX) vs no macro,MSE_log,XLY,-9.902222509919955
+Full (macro + VIX) vs no macro,MSE_log,Pooled,-14.301567021326855
+Full (macro + VIX) vs no macro,QLIKE,XLB,-14.77062314019637
+Full (macro + VIX) vs no macro,QLIKE,XLE,-0.7536734204605877
+Full (macro + VIX) vs no macro,QLIKE,XLF,-13.077608158780363
+Full (macro + VIX) vs no macro,QLIKE,XLI,-17.033600159934014
+Full (macro + VIX) vs no macro,QLIKE,XLY,-9.228673737466886
+Full (macro + VIX) vs no macro,QLIKE,Pooled,-11.224530696510849
+Add VIX to a no-macro model,MSE_log,XLB,-16.7546351295228
+Add VIX to a no-macro model,MSE_log,XLE,-1.8668647914727332
+Add VIX to a no-macro model,MSE_log,XLF,-10.475225433686964
+Add VIX to a no-macro model,MSE_log,XLI,-19.57313872330191
+Add VIX to a no-macro model,MSE_log,XLY,-3.2021328484803324
+Add VIX to a no-macro model,MSE_log,Pooled,-10.637840798027987
+Add VIX to a no-macro model,QLIKE,XLB,-15.163291374290733
+Add VIX to a no-macro model,QLIKE,XLE,-1.702337239037366
+Add VIX to a no-macro model,QLIKE,XLF,-13.675196616754782
+Add VIX to a no-macro model,QLIKE,XLI,-13.26056246049715
+Add VIX to a no-macro model,QLIKE,XLY,-7.424506508394502
+Add VIX to a no-macro model,QLIKE,Pooled,-10.587685785097767
+Add other ten to VIX,MSE_log,XLB,0.33562831075308885
+Add other ten to VIX,MSE_log,XLE,-5.181349638416643
+Add other ten to VIX,MSE_log,XLF,-5.597912337360256
+Add other ten to VIX,MSE_log,XLI,-2.0929044478979586
+Add other ten to VIX,MSE_log,XLY,-6.921732739164421
+Add other ten to VIX,MSE_log,Pooled,-4.099863136720194
+Add other ten to VIX,QLIKE,XLB,0.4628518013667593
+Add other ten to VIX,QLIKE,XLE,0.9650929553469689
+Add other ten to VIX,QLIKE,XLF,0.692255799670205
+Add other ten to VIX,QLIKE,XLI,-4.349852623518058
+Add other ten to VIX,QLIKE,XLY,-1.9488605040339113
+Add other ten to VIX,QLIKE,Pooled,-0.7122563787829383
+Add VIX to the other ten,MSE_log,XLB,-7.7663637434460036
+Add VIX to the other ten,MSE_log,XLE,-2.76569772443902
+Add VIX to the other ten,MSE_log,XLF,-8.124765925745015
+Add VIX to the other ten,MSE_log,XLI,-13.373356977797657
+Add VIX to the other ten,MSE_log,XLY,-7.563628353907125
+Add VIX to the other ten,MSE_log,Pooled,-8.01817968516887
+Add VIX to the other ten,QLIKE,XLB,-10.795324180459165
+Add VIX to the other ten,QLIKE,XLE,-4.12063918927884
+Add VIX to the other ten,QLIKE,XLF,-10.77639545561383
+Add VIX to the other ten,QLIKE,XLI,-15.311956977148666
+Add VIX to the other ten,QLIKE,XLY,-12.52211678228312
+Add VIX to the other ten,QLIKE,Pooled,-10.70277777489399
+Other ten alone vs no macro,MSE_log,XLB,-9.442191295545854
+Other ten alone vs no macro,MSE_log,XLE,-4.304846967961151
+Other ten alone vs no macro,MSE_log,XLF,-8.013016764053605
+Other ten alone vs no macro,MSE_log,XLI,-9.100016839448077
+Other ten alone vs no macro,MSE_log,XLY,-2.5299501855898243
+Other ten alone vs no macro,MSE_log,Pooled,-6.831118708731232
+Other ten alone vs no macro,QLIKE,XLB,-4.456379582365322
+Other ten alone vs no macro,QLIKE,XLE,3.5116689768772025
+Other ten alone vs no macro,QLIKE,XLF,-2.5791523609895672
+Other ten alone vs no macro,QLIKE,XLI,-2.0329235643345767
+Other ten alone vs no macro,QLIKE,XLY,3.7648865332274184
+Other ten alone vs no macro,QLIKE,Pooled,-0.5842879639655463
