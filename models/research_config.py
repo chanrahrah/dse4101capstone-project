@@ -25,7 +25,7 @@ SELECTED = {
     "XGBoost": ["xgb_no_macro", "xgb_no_vix", "xgb_vix_only", "xgb_full_macro"],
 }
 
-# The historical-volatility benchmark: RV_hat(t+1) = RV(t) (forecasting/build_hist_rw.py).
+# The historical-volatility benchmark: RV_hat(t+1) = RV(t) (forecasting/build/b0_hist_rw.ipynb).
 BENCHMARK = "hist_rw"
 
 # Comparison blocks, each answering one sub-question. The forecast evaluation (DM tests) and the
