@@ -1,10 +1,11 @@
-"""Shared code for the notebooks in models/portfolio_construction.
+"""Shared code for the notebooks in models/portfolio.
 
-01_build_portfolios builds the volatility-managed portfolios, 02_eval_portfolios evaluates them and
-03_forecast_vs_portfolio links forecast accuracy to portfolio performance. Paths are resolved from
+p1_build_portfolios builds the volatility-managed portfolios, p2_portfolio_eval evaluates them and
+p3_forecast_vs_portfolio links forecast accuracy to portfolio performance. Paths are resolved from
 this file's location, so the notebooks work from any working directory.
 """
 from pathlib import Path
+from .paths import PROJECT_ROOT, FORECAST_DIR, PORTFOLIO_RESULTS_DIR
 
 import numpy as np
 import pandas as pd
@@ -14,13 +15,10 @@ from scipy import stats
 
 PERIODS_PER_YEAR = 12
 
-MODELS_DIR = Path(__file__).resolve().parents[1]
-PROJECT_ROOT = MODELS_DIR.parent
-FORECAST_DIR = MODELS_DIR / "forecasting" / "forecasts"
 RETURNS_PATH = PROJECT_ROOT / "dataset" / "price" / "clean" / "daily_returns_panel_ver2.csv"
 VIX_PATH = PROJECT_ROOT / "dataset" / "macro_variables" / "raw" / "VIXCLS.csv"
-RESULTS_DIR = MODELS_DIR / "portfolio_construction" / "results"
-PORTFOLIO_DIR = RESULTS_DIR / "portfolios"   # written by 01_build_portfolios
+RESULTS_DIR = PORTFOLIO_RESULTS_DIR
+PORTFOLIO_DIR = RESULTS_DIR / "portfolios"   # written by p1_build_portfolios
 EVAL_DIR = RESULTS_DIR / "eval"              # written by 02 and 03
 
 CONTROL = "control"   # name of the re-levering control portfolio (expanding spec only)
@@ -32,7 +30,7 @@ FORECAST_FILES = {
     "Historical": "hist_rw_forecasts.csv",
     "Garch": "garch_forecasts.csv",
     "Elastic Net": "en_forecasts.csv",
-    "XGBoost": "xgb_forecasts_expanding_tidy.csv",
+    "XGBoost": "xgb_forecasts.csv",
 }
 
 
@@ -41,14 +39,20 @@ FORECAST_FILES = {
 # ---------------------------------------------------------------------------
 
 def load_monthly_returns(tickers, path=RETURNS_PATH):
-    """Monthly excess returns and realised variance (sum of squared daily returns)."""
+    """Monthly excess returns and RV of daily excess returns, matching model targets."""
     daily = pd.read_csv(path, parse_dates=["date"]).set_index("date").sort_index()
     ret_daily = daily[[f"ret_{t}" for t in tickers]].rename(columns=lambda c: c.removeprefix("ret_"))
+    xret_daily = daily[[f"xret_{t}" for t in tickers]].rename(columns=lambda c: c.removeprefix("xret_"))
+    if daily.index.hasnans or daily.index.has_duplicates:
+        raise ValueError("Daily return dates must be present and unique")
+    if not np.isfinite(daily[["rf_daily", *[f"ret_{t}" for t in tickers],
+                                  *[f"xret_{t}" for t in tickers]]].to_numpy()).all():
+        raise ValueError("Daily returns and risk-free rates must be finite")
 
     ret_monthly = (1 + ret_daily).resample("ME").prod() - 1
     rf_monthly = (1 + daily["rf_daily"]).resample("ME").prod() - 1
     xret_monthly = ret_monthly.sub(rf_monthly, axis=0)
-    rv_monthly = ret_daily.pow(2).resample("ME").sum()
+    rv_monthly = xret_daily.pow(2).resample("ME").sum(min_count=1)
     return xret_monthly, rv_monthly
 
 
@@ -68,12 +72,26 @@ def load_forecast_files(selected, forecast_files=FORECAST_FILES, forecast_dir=FO
     raw, available = {}, {}
     for family, variants in selected.items():
         df = pd.read_csv(Path(forecast_dir) / forecast_files[family], parse_dates=["date"])
+        required = {"model", "etf", "date", "actual_logRV", "actual_RV", "fc_log", "fc_level"}
+        if not required.issubset(df.columns):
+            raise ValueError(f"{forecast_files[family]} is missing columns: {sorted(required - set(df.columns))}")
+        if df[["model", "etf", "date"]].isna().any().any() or df.duplicated(["model", "etf", "date"]).any():
+            raise ValueError(f"{forecast_files[family]} has missing or duplicate model/ETF/origin keys")
+        values = ["actual_logRV", "actual_RV", "fc_log", "fc_level"]
+        if not np.isfinite(df[values].to_numpy()).all() or (df[["actual_RV", "fc_level"]] <= 0).any().any():
+            raise ValueError(f"{forecast_files[family]} contains invalid realized or forecast values")
+        if not df["date"].eq(df["date"].dt.to_period("M").dt.to_timestamp("M")).all():
+            raise ValueError(f"{forecast_files[family]} origins must be calendar month ends")
+        if not np.allclose(np.log(df["actual_RV"]), df["actual_logRV"], rtol=1e-10, atol=1e-12):
+            raise ValueError(f"{forecast_files[family]} has inconsistent realized log/level values")
         in_file = set(df["model"].unique())
         for v in variants:
             if v not in in_file:
                 print(f"NOTICE: {v} is not in {forecast_files[family]} yet; it and its pairs are skipped")
         # `date` is the forecast origin t; the forecast is for holding month t+1
         df["holding_month"] = df["date"] + pd.offsets.MonthEnd(1)
+        if "target_date" in df and not pd.to_datetime(df["target_date"]).eq(df["holding_month"]).all():
+            raise ValueError(f"{forecast_files[family]} target_date must be the next month end")
         raw[family] = df
         available[family] = [v for v in variants if v in in_file]
     return raw, available
@@ -163,11 +181,18 @@ def verdict(pair_id, a, b, gain, p, label="ΔSR", noun="portfolio"):
 
 def build_portfolio(sigma2_hat, xret, sigma2_bar, cap):
     """Capped volatility-managed weights, equal-weighted bucket, rescaled to BH volatility."""
+    if not sigma2_hat.index.equals(xret.index) or not sigma2_hat.columns.equals(xret.columns):
+        raise ValueError("Forecast and return dates/ETFs must match before portfolio construction")
+    if (not np.isfinite(sigma2_hat.to_numpy()).all() or (sigma2_hat <= 0).any().any()
+            or not np.isfinite(xret.to_numpy()).all()):
+        raise ValueError("Portfolio forecasts must be positive and finite; returns must be finite")
     weights_base = np.minimum(sigma2_bar / sigma2_hat, cap)
     positions = weights_base * xret
     managed_unscaled = positions.mean(axis=1)
     bh = xret.mean(axis=1)
     c = bh.std() / managed_unscaled.std()
+    if not np.isfinite(c) or c <= 0:
+        raise ValueError("Cannot volatility-scale a portfolio with zero or invalid volatility")
     return {
         "weights_base": weights_base,
         "positions": positions,
@@ -466,28 +491,6 @@ def per_etf_table(res, xret):
 def qlike(realized, forecast):
     ratio = realized / forecast
     return ratio - np.log(ratio) - 1
-
-
-def dm_test(loss_a, loss_b):
-    """Diebold-Mariano test of equal expected loss for one-step-ahead forecasts.
-
-    d_t = loss_a - loss_b, so a negative mean means a forecasts better. The long-run variance of
-    d_t is Newey-West (same lag rule as the other tests), and the statistic has the
-    Harvey-Leybourne-Newbold (1997) small-sample correction for h = 1, compared with t(T - 1).
-    `gain_t` = -DM_t, so a positive value means a is more accurate (the pair sign convention).
-    """
-    d = np.asarray(loss_a, float) - np.asarray(loss_b, float)
-    T = len(d)
-    lrv = _hac_cov(d[:, None], nw_lags(T))[0, 0]
-    dm = d.mean() / np.sqrt(lrv / T) * np.sqrt((T - 1) / T)
-    return {"mean_loss_diff": d.mean(), "gain_t": -dm, "DM_p": 2 * stats.t.sf(abs(dm), df=T - 1)}
-
-
-def dm_table(loss_a, loss_b):
-    """DM tests per ETF and for the bucket, where the bucket loss is the mean across ETFs."""
-    rows = {t: dm_test(loss_a[t], loss_b[t]) for t in loss_a.columns}
-    rows["Cyclical"] = dm_test(loss_a.mean(axis=1), loss_b.mean(axis=1))
-    return pd.DataFrame(rows).T.rename_axis("ETF")
 
 
 # ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ accidentally indexes by reference period instead of release date will fail
 loudly rather than silently leaking future information into month t.
 """
 
+import argparse
 import datetime as dt
 import os
 from io import BytesIO
@@ -224,15 +225,6 @@ SERIES_CONFIG = {
         "aggregation": AGG_TRAILING_MEAN,
     },
 }
-
-CATEGORY_OUTPUTS = [
-    "rates_yield_curve",
-    "credit_spreads",
-    "inflation",
-    "volatility_stress",
-    "real_activity_labour",
-    "dollar_commodity",
-]
 
 
 def get_fred_api_key():
@@ -577,14 +569,14 @@ def print_summary(full_panel, dropped):
         )
 
 
-def main():
+def main(from_raw=False):
     os.makedirs(RAW_DIR, exist_ok=True)
     os.makedirs(CLEAN_DIR, exist_ok=True)
 
-    api_key = get_fred_api_key()
+    api_key = None if from_raw else get_fred_api_key()
     dropped = write_dropped_series()
-    remove_stale_dropped_raw_files(dropped)
-    channel_data = {category: {} for category in CATEGORY_OUTPUTS}
+    if not from_raw:
+        remove_stale_dropped_raw_files(dropped)
     all_monthly_data = {}
 
     for series_id, cfg in SERIES_CONFIG.items():
@@ -593,17 +585,18 @@ def main():
             continue
 
         print(
-            f"Fetching {series_id} "
+            f"{'Loading' if from_raw else 'Fetching'} {series_id} "
             f"({cfg['category']}, {cfg['frequency']}, source={cfg['source']}) ..."
         )
-        raw = fetch_raw_series(series_id, cfg, api_key)
+        raw_path = os.path.join(RAW_DIR, f"{series_id}.csv")
+        raw = pd.read_csv(raw_path) if from_raw else fetch_raw_series(series_id, cfg, api_key)
         raw = align_series(raw, cfg)
-        raw.to_csv(os.path.join(RAW_DIR, f"{series_id}.csv"), index=False)
+        if not from_raw:
+            raw.to_csv(raw_path, index=False)
 
         monthly = aggregate_monthly(raw, cfg)
         validate_release_alignment(series_id, raw, monthly, cfg)
 
-        channel_data[cfg["category"]][series_id] = monthly
         all_monthly_data[series_id] = monthly
 
     full_panel = pd.DataFrame(all_monthly_data).reindex(month_end_index())
@@ -611,19 +604,16 @@ def main():
     full_panel.index.name = "date"
     validate_final_panel(full_panel)
 
-    for category in CATEGORY_OUTPUTS:
-        panel = pd.DataFrame(channel_data[category]).reindex(month_end_index())
-        panel.index.name = "date"
-        panel.to_csv(os.path.join(CLEAN_DIR, f"{category}.csv"))
-        print(f"Saved {category}.csv with columns: {list(panel.columns)}")
-
     full_panel.to_csv(os.path.join(CLEAN_DIR, "fred_monthly_panel.csv"))
     print(f"Saved fred_monthly_panel.csv with all {len(full_panel.columns)} series")
     print_summary(full_panel, dropped)
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--from-raw", action="store_true",
+                        help="Rebuild from existing raw CSVs without downloading or an API key.")
     try:
-        main()
+        main(from_raw=parser.parse_args().from_raw)
     except RuntimeError as exc:
         raise SystemExit(f"Error: {exc}")
