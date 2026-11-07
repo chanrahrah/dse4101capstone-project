@@ -18,6 +18,7 @@ Thumbs.db
 
 # Generated data
 dataset/*.xlsx
+supporting/saved_fits/
 
 # Environment / secrets
 .env

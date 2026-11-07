@@ -6,7 +6,7 @@ for cyclical-sector ETFs relative to historical-volatility benchmarks, and do th
 translate into better risk-adjusted performance in volatility-managed portfolios?
 
 Portfolio-only settings (leverage cap, sigma2_bar specifications) are in
-portfolio_construction/config.py.
+portfolio/config.py.
 """
 
 TICKERS = ["XLB", "XLE", "XLF", "XLI", "XLY"]   # cyclical bucket
@@ -82,8 +82,8 @@ BLOCKS = {
         ],
     },
     "B5": {
-        "title": "Non-linearity",
-        "question": "With the same information, does XGBoost beat Elastic Net?",
+        "title": "Elastic Net vs XGBoost specifications",
+        "question": "With matched macro inputs, does the XGBoost specification beat Elastic Net?",
         "models": ["en_no_macro", "xgb_no_macro", "en_no_vix", "xgb_no_vix",
                    "en_vix_only", "xgb_vix_only", "en_full_macro", "xgb_full_macro"],
         "pairs": [
