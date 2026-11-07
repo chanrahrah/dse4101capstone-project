@@ -27,14 +27,19 @@ models/
     ├── p1_build_portfolios.ipynb       builds and saves every portfolio
     ├── p2_portfolio_eval.ipynb         evaluates the portfolios, block by block
     ├── p3_forecast_vs_portfolio.ipynb  ranks the models by forecast accuracy and by portfolio performance
-    └── results/
-        ├── portfolios/                 written by p1
-        └── eval/                       written by p2 and p3
+    ├── results/
+    │   ├── portfolios/                 written by p1
+    │   └── eval/                       written by p2 and p3
+    └── robustness/
+        ├── rp1_different_leverages.ipynb   the leverage cap k = 1.5, 3 and no cap
+        ├── rp2_timing_vs_relevering.ipynb  expanding σ̄²: timing or re-levering?
+        └── results/                        written by rp1 and rp2
 ```
 
 Every path comes from `utils/paths.py`, so the notebooks run with the kernel started anywhere
-inside the checkout and always write to `portfolio/results/`. Older scripts and portfolio work are
-kept in `models/archive/` and are not part of the run order.
+inside the checkout and always write to `portfolio/results/` (the robustness notebooks to
+`portfolio/robustness/results/`). Older scripts and portfolio work are kept in `models/archive/`
+and are not part of the run order.
 
 ## How to run
 
@@ -43,6 +48,8 @@ kept in `models/archive/` and are not part of the run order.
 2. Run **p1 → p2**. p1 takes a few seconds, p2 about a minute.
 3. Run `models/forecasting/evaluation/e6_forecast_summary.ipynb` if the forecasts have changed,
    then **p3**, which reads e6's results and p2's tables.
+4. Robustness checks: **rp1** and **rp2** in `robustness/`, in any order after p1. Each needs
+   only p1's saved portfolios and takes under half a minute.
 
 p2 and p3 read the models, pairs and window from `results/portfolios/run_info.json`, so they
 always match the last run of p1. p3 stops with an error if p2's tables or e6's results do not
@@ -60,7 +67,9 @@ match that run.
     tests forecast skill.
   - **expanding** (robustness): the mean from 2003-03 up to month t. It also re-levers the
     portfolio after crises; the **control** portfolio, min(σ̄²ᵢ,ₜ / σ̄²ᵢ,fixed, 2) with no forecast,
-    isolates that effect.
+    isolates that effect (rp2).
+- **Leverage cap:** k = 2 in the main results; rp1 rebuilds the fixed-σ̄² portfolios with k = 1.5,
+  k = 3 and no cap.
 - **Portfolio:** the 1/N average of the ETFs' managed excess returns, rescaled to buy-and-hold
   volatility over the out-of-sample period. For the per-ETF results, each ETF's managed series is
   rescaled to its own buy-and-hold volatility.
@@ -95,8 +104,10 @@ pairs that use it.
 | Notebook | Contents | Tests |
 |---|---|---|
 | p1 | Loads the forecasts and returns; checks the date alignment; computes σ̄² under both specifications; builds every portfolio and the control; weight diagnostics (per ETF and pooled); saves | none |
-| p2 | **A** cyclical bucket: overview, one section per block (table against BH and `hist_rw`, pair tests, growth plot, verdicts), scoreboard. **B** per ETF: heatmaps against the benchmarks and for the pairs, full tables. **C** expanding σ̄²: do the pair results hold; timing vs re-levering (control regressions) | Ledoit-Wolf (2008) Sharpe ratio tests; α on BH (Newey-West) |
+| p2 | **A** cyclical bucket: overview, one section per block (table against BH and `hist_rw`, pair tests, growth plot, verdicts), scoreboard. **B** per ETF: heatmaps against the benchmarks and for the pairs, full tables | Ledoit-Wolf (2008) Sharpe ratio tests; α on BH (Newey-West) |
 | p3 | Ranks every model against `hist_rw`, pooled and per ETF: **1** forecast accuracy by QLIKE, with e6's log-RV MSE tests; **2** portfolio performance by Sharpe ratio, with p2's Ledoit-Wolf test; **3** forecast rank vs portfolio rank (slope chart, Spearman ρ) | none of its own: Diebold-Mariano and Clark-West from e6 (Clark-West for Elastic Net only, which nests `hist_rw`), Ledoit-Wolf from p2 |
+| rp1 | Rebuilds every model's bucket under the fixed σ̄² with k = 1.5, 2, 3 and no cap (the k = 2 rebuild must match p1); ΔSR vs BH and α on BH per model and cap, each with its p-value | Ledoit-Wolf vs BH; α on BH (Newey-West) |
+| rp2 | Expanding vs fixed σ̄² over time; control regressions: what the forecast adds beyond BH and re-levering under the expanding σ̄² | α on BH and the control (Newey-West) |
 
 ## Outputs
 
@@ -118,13 +129,19 @@ pairs that use it.
 | `vs_benchmarks_per_etf_<spec>.csv` | p2 | The same per ETF |
 | `pairs.csv` | p2 | Every block-pair Ledoit-Wolf test (spec, block, pair, a, b, ETF) |
 | `scoreboard_bucket.csv` | p2 | The portfolio answer per pair, under both specifications |
-| `extension.csv` | p2 | Control regressions under the expanding σ̄² |
 | `forecast_ranking.csv` | p3 | Models ranked by QLIKE per unit, with the QLIKE gain % vs `hist_rw` and e6's DM and Clark-West p-values on the log-RV MSE |
 | `portfolio_ranking_<spec>.csv` | p3 | Models ranked by Sharpe ratio per unit, with ΔSR vs `hist_rw` and the Ledoit-Wolf p-value (main σ̄²) |
 | `rank_summary_<spec>.csv` | p3 | Spearman ρ between accuracy and Sharpe ratio, with and without `hist_rw`, and `hist_rw`'s ranks (main σ̄²) |
 
 `<spec>` is `fixed` or `expanding`; p3 writes the main specification (`fixed`) only. In p3 the unit
 `Cyclical` is the pooled bucket.
+
+`robustness/results/`, written by rp1 and rp2:
+
+| File | Written by | Contents |
+|---|---|---|
+| `rp1_different_leverages.csv` | rp1 | Per cap and model: SR, ΔSR and Ledoit-Wolf p vs BH, α on BH, % capped, max weight, c |
+| `rp2_timing_vs_relevering.csv` | rp2 | Control regressions under the expanding σ̄² (formerly `extension.csv` from p2) |
 
 ## Adding a model or a comparison
 

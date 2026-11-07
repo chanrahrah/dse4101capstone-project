@@ -19,7 +19,7 @@ RETURNS_PATH = PROJECT_ROOT / "dataset" / "price" / "clean" / "daily_returns_pan
 VIX_PATH = PROJECT_ROOT / "dataset" / "macro_variables" / "raw" / "VIXCLS.csv"
 RESULTS_DIR = PORTFOLIO_RESULTS_DIR
 PORTFOLIO_DIR = RESULTS_DIR / "portfolios"   # written by p1_build_portfolios
-EVAL_DIR = RESULTS_DIR / "eval"              # written by 02 and 03
+EVAL_DIR = RESULTS_DIR / "eval"              # written by p2_portfolio_eval and p3_forecast_vs_portfolio
 
 CONTROL = "control"   # name of the re-levering control portfolio (expanding spec only)
 BH = "BH"             # name of the buy-and-hold benchmark in the result tables
