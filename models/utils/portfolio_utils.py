@@ -32,7 +32,7 @@ FORECAST_FILES = {
     "Historical": "hist_rw_forecasts.csv",
     "Garch": "garch_forecasts.csv",
     "Elastic Net": "en_forecasts.csv",
-    "XGBoost": "xgb_forecasts_expanding_tidy.csv",
+    "XGBoost": "xgb_forecasts.csv",
 }
 
 
@@ -368,6 +368,7 @@ def ledoit_wolf_sharpe_test(x, y, block_size=5, n_boot=5000, seed=0):
         "SR_managed": x.mean() / x.std(ddof=1) * np.sqrt(PERIODS_PER_YEAR),
         "SR_benchmark": y.mean() / y.std(ddof=1) * np.sqrt(PERIODS_PER_YEAR),
         "SR_diff": diff * np.sqrt(PERIODS_PER_YEAR),
+        "SR_diff_se": se * np.sqrt(PERIODS_PER_YEAR),   # HAC standard error of SR_diff: t_stat = SR_diff / SR_diff_se
         "t_stat": t_stat,
         "p_value": p_value,
     }
@@ -425,7 +426,7 @@ def compare_pair(res_a, res_b, xret):
     for t in xret.columns:
         rows[t] = ledoit_wolf_sharpe_test(managed_a[t], managed_b[t])
     out = pd.DataFrame(rows).T.rename(columns={"SR_managed": "SR_a", "SR_benchmark": "SR_b",
-                                               "t_stat": "LW_t", "p_value": "LW_p"})
+                                               "SR_diff_se": "LW_se", "t_stat": "LW_t", "p_value": "LW_p"})
     return out.rename_axis("ETF")
 
 
@@ -510,6 +511,34 @@ def style_axis(ax):
     for side in ["left", "bottom"]:
         ax.spines[side].set_color("#b5b4ad")
     ax.tick_params(colors=TEXT_SECONDARY, labelsize=8)
+
+
+def label_points(ax, xs, ys, labels, fontsize=7):
+    """Label each point at the first spot around it that overlaps no point and no earlier label.
+
+    Labels are placed in screen space, so call this after the limits and layout are final.
+    """
+    from matplotlib.transforms import Bbox
+
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    r = 4 * fig.dpi / 72   # about a marker's radius, in pixels
+    taken = [Bbox.from_extents(px - r, py - r, px + r, py + r)
+             for px, py in ax.transData.transform(np.column_stack([xs, ys]))]
+    spots = [(6, 0, "left", "center"), (-6, 0, "right", "center"), (0, 7, "center", "bottom"),
+             (0, -7, "center", "top"), (5, 5, "left", "bottom"), (5, -5, "left", "top"),
+             (-5, 5, "right", "bottom"), (-5, -5, "right", "top")]
+    for x, y, text in zip(xs, ys, labels):
+        for i, (dx, dy, ha, va) in enumerate(spots + spots[:1]):   # no free spot: fall back to the first
+            ann = ax.annotate(text, (x, y), xytext=(dx, dy), textcoords="offset points", ha=ha, va=va,
+                              fontsize=fontsize, color=TEXT_SECONDARY, zorder=4,
+                              bbox=dict(boxstyle="square,pad=0.1", facecolor="white", edgecolor="none", alpha=0.75))
+            box = ann.get_window_extent(renderer)
+            if i == len(spots) or not any(box.overlaps(t) for t in taken):
+                break
+            ann.remove()
+        taken.append(box)
 
 
 def plot_growth(returns, ax, title, benchmark=None):
