@@ -27,7 +27,8 @@ models/
 │   │   ├── e4_vix_effect_xgb.ipynb
 │   │   ├── e5_linear_vs_nonlinear.ipynb
 │   │   └── e6_naive_vs_all_models.ipynb
-│   └── results/                   e1–e6 losses and evaluation CSVs
+│   ├── results/                   e1–e6 losses and evaluation CSVs
+│   └── robustness/                crisis and rolling-window checks, forecasts and results
 ├── portfolio/
 │   ├── README.md
 │   ├── config.py
@@ -62,13 +63,18 @@ remain in their evaluation notebooks; no `forecast_eval.py` helper is required.
 
 To run the complete workflow automatically, use `python3 run_pipeline.py --start fetch`
 from the repository root, or `--start raw` to rebuild from saved raw data without downloads.
-See the [pipeline instructions](../README.md#run-the-full-pipeline) for prerequisites and outputs.
+See the [pipeline instructions](../README.md#run-the-analysis) for prerequisites and outputs.
 
 1. Install the dependencies in the repository's `requirements.txt` and prepare `dataset/`.
 2. Review `research_config.py` and `portfolio/config.py`. Restart kernels after changing imported configuration.
 3. Run **b0 → b1 → b2 → b3** to produce the benchmark, GARCH, Elastic Net and XGBoost forecasts.
 4. Run **e1 → e2 → e3 → e4 → e5 → e6** for forecast evaluation. e6 is retained because p3 reads its tables.
-5. Run **p1 → p2 → p3** to build portfolios, evaluate performance and connect it to forecast accuracy.
+5. Run **r1 → r2 → r3 → r4** in `forecasting/robustness/` for crisis exclusions and rolling-window comparisons,
+   including `r2_crisis_naive_vs_all_models.ipynb` for every model against the benchmark.
+6. Run **p1 → p2 → p3** to build portfolios, evaluate performance and connect it to forecast accuracy.
+7. Run **rp1 → rp2** in `portfolio/robustness/` for leverage and reference-variance checks.
+
+The runner includes all of these steps, plus the price EDA notebook.
 
 The active forecast files are `hist_rw_forecasts.csv`, `garch_forecasts.csv`, `en_forecasts.csv`
 and `xgb_forecasts.csv`. Build notebooks write them directly to `forecasting/forecasts/`.
@@ -77,5 +83,5 @@ preserved, including the `e6_losses.csv` and `e6_evaluation.csv` inputs to p3. P
 under `portfolio/results/portfolios/` and `portfolio/results/eval/`.
 
 Archived files retain their historical contents and may use historical paths. They are excluded
-from this run order. The notebook output cells are historical snapshots; rerun the relevant notebooks to refresh them.
-See [AUDIT.md](AUDIT.md) for the pipeline checks and remaining research limitations.
+from this run order. Source notebook output cells can be historical snapshots; the runner
+prints where it saves fresh executed copies. Use those copies for report tables and figures.

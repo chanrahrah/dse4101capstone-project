@@ -1,67 +1,89 @@
-# Capstone Project
+# Sector ETF Volatility Forecasting
 
-## Structure
+This project studies whether macro-financial predictors improve volatility forecasts
+for XLB, XLE, XLF, XLI and XLY, and whether those forecasts improve volatility-managed
+portfolios. The out-of-sample period is March 2008 to December 2025.
 
-- `dataset/` — raw and processed data files
-- `models/` — forecasting and portfolio research notebooks, shared configuration, and results; see [the notebook map and run order](models/README.md)
-- `models/archive/` — earlier model scripts, portfolio experiments, and forecast exports
+## Repository structure
 
-## Getting Started
-
-Clone the repo and run:
-
+```text
+.
+├── dataset/
+│   ├── price/                 # Raw ETF data, return cleaning and monthly variance
+│   └── macro_variables/       # Raw macro series, alignment and transformations
+├── models/
+│   ├── research_config.py     # Selected models, sample and comparison blocks
+│   ├── forecasting/
+│   │   ├── build/             # b0–b3: forecast estimation
+│   │   ├── forecasts/         # Model forecast CSVs
+│   │   ├── evaluation/        # e1–e6: forecast comparisons
+│   │   ├── results/           # Forecast evaluation tables
+│   │   └── robustness/        # Crisis and rolling-window analyses
+│   ├── portfolio/             # p1–p3, portfolio settings and results
+│   ├── utils/                 # Shared paths and portfolio functions
+│   └── archive/               # Earlier experiments
+├── requirements.txt
+└── run_pipeline.py
 ```
-pip install -r requirements.txt
+
+## Data setup
+
+The pipeline starts from the supplied raw CSVs. It does not download CRSP data.
+The following files must be present:
+
+```text
+dataset/price/raw/sector_etf_prices_with_xlre.csv
+dataset/price/raw/risk_free_rate_returns.csv
+dataset/macro_variables/raw/   # Fourteen saved macro series
 ```
 
-## Run the full pipeline
+Price-cleaning scripts create daily excess returns and monthly realised variance.
+Macro scripts align observations to month-end information and produce eleven predictors.
 
-Fetch macro data and run data preparation, b0–b3, e1–e6, and p1–p3:
+## Installation
+
+From the repository root, install the project dependencies:
 
 ```bash
-python3 run_pipeline.py --start fetch
+python3 -m pip install -r requirements.txt
 ```
 
-Or rebuild everything from the existing raw data, without downloading:
+## Run the analysis
+
+Rebuild from the supplied raw data:
 
 ```bash
 python3 run_pipeline.py --start raw
 ```
 
-Both modes require the existing CRSP exports `sector_etf_prices_with_xlre.csv` and
-`risk_free_rate_returns.csv` in `dataset/price/raw/`. Fetch mode also requires
-`FRED_API_KEY`. Raw mode requires the saved macro series in `dataset/macro_variables/raw/`.
-The configured data dates are retained; fetch mode does not extend the research sample.
+The execution order is:
 
-Outputs overwrite the existing data, forecast and result files. Forecasts are rebuilt,
-with GARCH's existing fit cache retained. Each notebook runs in a fresh kernel using the
-runner's Python environment; source notebooks are not modified. Notebook displays are
-executed in memory rather than saved. The runner prints each file and stops on the first
-error. Full model fitting can take substantial time.
+**Data preparation → EDA → b0–b3 → e1–e6 → forecast robustness checks → p1–p3 → rp1–rp2**
 
-## Refresh Macro Data
+b2 and b3 also generate the rolling-window forecasts. To re-estimate every model
+without reusing saved GARCH fits, add `--no-fit-cache`.
 
-Set `FRED_API_KEY` in your environment or a repository-level `.env` file,
-then run these commands from the repository root:
+To rerun data preparation and downstream analyses using existing forecasts:
 
 ```bash
-python3 dataset/macro_variables/fetch_fred_data.py
-python3 dataset/macro_variables/transform_macro_data.py
+python3 run_pipeline.py --start raw --reuse-forecasts
 ```
 
-The fetch script writes the combined monthly panel and a dropped-series report; duplicate
-category panels are not exported. It writes API data to `dataset/macro_variables/raw/` and the
-monthly panel to `dataset/macro_variables/clean/fred_monthly_panel.csv`.
-The transform script uses that panel for all 11 predictors and writes
-`final_macro_data.csv` and `adf_test_results.csv` to
-`dataset/macro_variables/final_clean/`.
+To download fresh macro observations first, use `--start fetch` instead. This requires
+`FRED_API_KEY` in your environment or the repository-level `.env` file. Both modes
+require the CRSP exports above.
 
-## Fast pipeline checks
+## Outputs
 
-```bash
-python3 -m unittest discover -s tests -v
-```
+- Main forecasts: `models/forecasting/forecasts/`
+- Forecast evaluation tables: `models/forecasting/results/`
+- Portfolio returns and weights: `models/portfolio/results/portfolios/`
+- Portfolio performance tables: `models/portfolio/results/eval/`
+- Research robustness results: `models/forecasting/robustness/results/` and `models/portfolio/robustness/results/`
 
-These checks validate saved data, model/ETF/month coverage, forecast targets, comparison blocks,
-and the forecast-to-portfolio joins without downloading or fitting models. See
-[the repository audit](models/AUDIT.md) for verification details and research limitations.
+Runs overwrite processed data and result CSVs. Source notebook displays can be older
+snapshots; the runner prints where it saves fresh executed copies. Full model fitting can take
+substantial time. Preview the execution order with `--dry-run`.
+
+See [the model guide](models/README.md) and [the portfolio guide](models/portfolio/README.md)
+for individual notebook descriptions and manual execution.

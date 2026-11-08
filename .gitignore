@@ -19,6 +19,7 @@ Thumbs.db
 # Generated data
 dataset/*.xlsx
 supporting/saved_fits/
+supporting/pipeline_runs/
 
 # Environment / secrets
 .env

@@ -4,7 +4,7 @@ Starting point: clean/fred_monthly_panel.csv, produced by fetch_fred_data.py.
 That script already drops series with no ALFRED/vintage history from 2000
 onwards (NFCI, STLFSI4, ICSA, DTWEXBGS). This script performs a second,
 economics-driven narrowing pass -- reducing collinearity within each FRED
-channel -- per Dataset.pdf.
+channel. The representations and rationale are documented below.
 
 All predictors, including oil, come from the monthly panel produced by
 fetch_fred_data.py. Run that script before this one to refresh the API inputs.
@@ -102,8 +102,7 @@ def apply_transformations(df):
     """Step 3: log-difference the asset-price-like / index-level series.
 
     Everything else (spreads, rates, VIX, UNRATE, UMCSENT) stays as a
-    level -- see the table in Dataset.pdf for the full rationale per
-    variable. Log-differences are computed on the full history (before
+    level -- see the module docstring for the rationale per variable. Log-differences are computed on the full history (before
     slicing to START_DATE) so the first usable month doesn't lose its
     diff to a missing prior observation.
     """

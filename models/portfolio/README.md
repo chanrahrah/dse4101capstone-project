@@ -48,12 +48,13 @@ and are not part of the run order.
 2. Run **p1 → p2**. p1 takes a few seconds, p2 about a minute.
 3. Run `models/forecasting/evaluation/e6_naive_vs_all_models.ipynb` if the forecasts have changed,
    then **p3**, which reads e6's results and p2's tables.
-4. Robustness checks: **rp1** and **rp2** in `robustness/`, in any order after p1. Each needs
+4. The root `run_pipeline.py` runs p1–p3 and both robustness notebooks automatically.
+5. Robustness checks: **rp1** and **rp2** in `robustness/`, in any order after p1. Each needs
    only p1's saved portfolios and takes under half a minute.
 
-p2 and p3 read the models, pairs and window from `results/portfolios/run_info.json`, so they
-always match the last run of p1. p3 stops with an error if p2's tables or e6's results do not
-match that run.
+p2 and p3 read the models, pairs and window from `results/portfolios/run_info.json`.
+p3 checks model coverage in p2/e6; that check alone cannot detect stale numeric results.
+Rerun the root pipeline after changing forecasts before using the portfolio tables.
 
 ## Method
 
