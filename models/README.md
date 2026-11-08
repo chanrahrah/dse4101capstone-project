@@ -26,7 +26,7 @@ models/
 │   │   ├── e3_vix_effect_en.ipynb
 │   │   ├── e4_vix_effect_xgb.ipynb
 │   │   ├── e5_linear_vs_nonlinear.ipynb
-│   │   └── e6_forecast_summary.ipynb
+│   │   └── e6_naive_vs_all_models.ipynb
 │   └── results/                   e1–e6 losses and evaluation CSVs
 ├── portfolio/
 │   ├── README.md
@@ -55,7 +55,7 @@ remain in their evaluation notebooks; no `forecast_eval.py` helper is required.
 | How much does VIX contribute in Elastic Net? | [e3](forecasting/evaluation/e3_vix_effect_en.ipynb) | B3 |
 | Does the VIX finding hold in XGBoost? | [e4](forecasting/evaluation/e4_vix_effect_xgb.ipynb) | B4 |
 | Does XGBoost outperform Elastic Net with matched macro inputs? | [e5](forecasting/evaluation/e5_linear_vs_nonlinear.ipynb) | B5 |
-| Which models beat the historical-volatility benchmark? | [e6](forecasting/evaluation/e6_forecast_summary.ipynb) | Selected models vs benchmark |
+| Which models beat the historical-volatility benchmark? | [e6](forecasting/evaluation/e6_naive_vs_all_models.ipynb) | Selected models vs benchmark |
 | Do forecast gains improve portfolio performance? | [p1](portfolio/p1_build_portfolios.ipynb), [p2](portfolio/p2_portfolio_eval.ipynb), [p3](portfolio/p3_forecast_vs_portfolio.ipynb) | B0–B5 |
 
 ## Run order

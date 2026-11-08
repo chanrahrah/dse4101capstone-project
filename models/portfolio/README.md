@@ -46,7 +46,7 @@ and are not part of the run order.
 1. Edit `research_config.py` or `config.py` if needed, then restart the kernel of any open
    notebook (Python caches imported modules).
 2. Run **p1 → p2**. p1 takes a few seconds, p2 about a minute.
-3. Run `models/forecasting/evaluation/e6_forecast_summary.ipynb` if the forecasts have changed,
+3. Run `models/forecasting/evaluation/e6_naive_vs_all_models.ipynb` if the forecasts have changed,
    then **p3**, which reads e6's results and p2's tables.
 4. Robustness checks: **rp1** and **rp2** in `robustness/`, in any order after p1. Each needs
    only p1's saved portfolios and takes under half a minute.

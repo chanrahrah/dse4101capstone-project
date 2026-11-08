@@ -35,7 +35,7 @@ def main():
         "models/forecasting/evaluation/e3_vix_effect_en.ipynb",
         "models/forecasting/evaluation/e4_vix_effect_xgb.ipynb",
         "models/forecasting/evaluation/e5_linear_vs_nonlinear.ipynb",
-        "models/forecasting/evaluation/e6_forecast_summary.ipynb",
+        "models/forecasting/evaluation/e6_naive_vs_all_models.ipynb",
         "models/portfolio/p1_build_portfolios.ipynb",
         "models/portfolio/p2_portfolio_eval.ipynb",
         "models/portfolio/p3_forecast_vs_portfolio.ipynb",
