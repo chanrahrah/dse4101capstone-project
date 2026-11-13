@@ -66,37 +66,15 @@ pairs, plus B0 (`garch` vs `hist_rw`), so the two answers can be matched. The bl
 - **Sample:** out-of-sample from 2008-03 to 2025-12 (214 months per ETF), the same for every model.
   Each notebook scores the common (ETF, month) rows where all compared models have a forecast.
 
-## Where things are
+## Folder layout
 
-```
-models/
-├── research_config.py
-├── utils/
-│   ├── paths.py
-│   └── forecast_data.py
-├── forecasting/
-│   ├── build/
-│   │   ├── b0_hist_rw.ipynb
-│   │   ├── b1_garch_garchmidas.ipynb
-│   │   ├── b2_elastic_net.ipynb
-│   │   └── b3_xgboost.ipynb
-│   ├── forecasts/
-│   ├── evaluation/
-│   │   ├── e1_garch_family.ipynb
-│   │   ├── e2_macro_value.ipynb
-│   │   ├── e3_vix_effect_en.ipynb
-│   │   ├── e4_vix_effect_xgb.ipynb
-│   │   ├── e5_linear_vs_nonlinear.ipynb
-│   │   └── e6_naive_vs_all_models.ipynb
-│   ├── results/
-│   └── robustness/
-│       ├── crisis_config.py
-│       ├── r1_crisis_en.ipynb
-│       ├── r2_crisis_naive_vs_garch_en.ipynb
-│       ├── r3_rolling_window_en.ipynb
-│       ├── forecasts/
-│       └── results/
-└── portfolio/
+```text
+forecasting/
+├── build/          # b0–b3: model estimation
+├── forecasts/      # Main forecasts and GARCH-MIDAS coefficients
+├── evaluation/     # e1–e6: forecast comparisons
+├── results/        # Build diagnostics and evaluation tables
+└── robustness/     # r1–r3, crisis_config.py, forecasts/ and results/
 ```
 
 ## Notebooks
@@ -121,11 +99,10 @@ The crisis windows (r1, r2) are the NBER recessions in `robustness/crisis_config
 to 2009-06 (in sample from 2008-03) and COVID 2020-02 to 2020-04. A forecast is dropped when its
 `target_date` falls in a window; nothing is refitted.
 
-Settings live in `models/research_config.py` (ETFs, sample, selected models, benchmark, blocks).
-`utils/forecast_data.py` names the forecast files and checks that each covers every selected model,
-ETF and out-of-sample month, with realised values matching the current RV data.
-
 ## How to run
+
+For automatic execution, see the [root pipeline instructions](../../README.md#run-the-analysis).
+For manual execution, review the [shared configuration](../README.md#shared-configuration), then:
 
 1. Prepare `dataset/` (daily excess returns, monthly realised variance, final macro data).
 2. Run **b0 → b1 → b2 → b3**. b1 reuses saved GARCH fits from `supporting/saved_fits/` when the
@@ -136,10 +113,6 @@ ETF and out-of-sample month, with realised values matching the current RV data.
    since portfolio p3 reads its tables.
 4. Run **r1, r2, r3** in any order after the build notebooks (r1 and r3 compare against
    `e3_evaluation.csv`, r2 against `e6_evaluation.csv`).
-
-The root `run_pipeline.py` runs all of these (`--reuse-forecasts` skips the rebuild,
-`--no-fit-cache` refits GARCH from scratch). After editing a config file, restart the kernel of
-any open notebook.
 
 ## Outputs
 

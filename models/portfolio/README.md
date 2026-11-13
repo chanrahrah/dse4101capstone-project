@@ -52,31 +52,15 @@ tests; the forecast side (e1 to e5) tests the same pairs. The blocks are defined
 - **Sample:** out-of-sample from 2008-03 to 2025-12 (214 months), the same for every model. Each
   forecast row dated t is the forecast for month t+1; p1 checks this on every run.
 
-## Where things are
+## Folder layout
 
-```
-models/
-├── research_config.py
-├── utils/
-│   ├── paths.py
-│   └── portfolio_utils.py
-├── forecasting/
-│   ├── build/
-│   ├── forecasts/
-│   ├── evaluation/
-│   └── results/
-└── portfolio/
-    ├── config.py
-    ├── p1_build_portfolios.ipynb
-    ├── p2_portfolio_eval.ipynb
-    ├── p3_forecast_vs_portfolio.ipynb
-    ├── results/
-    │   ├── portfolios/
-    │   └── eval/
-    └── robustness/
-        ├── rp1_different_leverages.ipynb
-        ├── rp2_timing_vs_relevering.ipynb
-        └── results/
+```text
+portfolio/          # p1–p3 notebooks (described below)
+├── config.py       # Portfolio-only settings
+├── results/
+│   ├── portfolios/
+│   └── eval/
+└── robustness/     # rp1–rp2 and results/
 ```
 
 ## Notebooks
@@ -89,18 +73,19 @@ models/
 | `robustness/rp1_different_leverages` | Rebuilds the portfolios with leverage caps k = 1.5, 2, 3 and no cap |
 | `robustness/rp2_timing_vs_relevering` | Under the expanding σ̄², separates the forecast's contribution from plain re-levering |
 
-Settings live in `models/research_config.py` (ETFs, sample, models, blocks) and `config.py`
-(forecast column, leverage cap, σ̄² specifications).
+Portfolio-only settings live in [config.py](config.py): forecast column, leverage cap and σ̄²
+specifications. See [shared configuration](../README.md#shared-configuration) for ETFs, sample,
+models and comparison blocks.
 
 ## How to run
+
+For automatic execution, see the [root pipeline instructions](../../README.md#run-the-analysis).
+For manual execution, first prepare the data and [build the forecasts](../forecasting/README.md#how-to-run), then:
 
 1. Run **p1 → p2**.
 2. If the forecasts have changed, rerun `models/forecasting/evaluation/e6_naive_vs_all_models.ipynb`,
    then run **p3**.
 3. Run **rp1** and **rp2** in any order after p1.
-
-The root `run_pipeline.py` runs all of these. After editing a config file, restart the kernel of
-any open notebook.
 
 ## Outputs
 

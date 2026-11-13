@@ -4,91 +4,51 @@ Can macro-aware volatility forecasts improve out-of-sample accuracy for cyclical
 relative to historical-volatility benchmarks, and do these gains translate into better
 risk-adjusted performance in volatility-managed portfolios?
 
-## File map
+## Guides
 
-```
-models/
-├── README.md
-├── research_config.py
-├── utils/
-│   ├── paths.py
-│   ├── forecast_data.py
-│   └── portfolio_utils.py
-├── forecasting/
-│   ├── build/
-│   │   ├── b0_hist_rw.ipynb
-│   │   ├── b1_garch_garchmidas.ipynb
-│   │   ├── b2_elastic_net.ipynb
-│   │   └── b3_xgboost.ipynb
-│   ├── forecasts/                 tidy forecasts and GARCH-MIDAS coefficients
-│   ├── evaluation/
-│   │   ├── e1_garch_family.ipynb
-│   │   ├── e2_macro_value.ipynb
-│   │   ├── e3_vix_effect_en.ipynb
-│   │   ├── e4_vix_effect_xgb.ipynb
-│   │   ├── e5_linear_vs_nonlinear.ipynb
-│   │   └── e6_naive_vs_all_models.ipynb
-│   ├── results/                   e1–e6 losses and evaluation CSVs
-│   └── robustness/                crisis and rolling-window checks, forecasts and results
-├── portfolio/
-│   ├── README.md
-│   ├── config.py
-│   ├── p1_build_portfolios.ipynb
-│   ├── p2_portfolio_eval.ipynb
-│   ├── p3_forecast_vs_portfolio.ipynb
-│   └── results/
-└── archive/
-    ├── scripts/                   earlier model and portfolio work, with original outputs
-    ├── forecasts/                 legacy root forecast exports
-    └── dataset/price/             superseded price-cleaning pipeline
-```
+| Guide | Contents |
+|---|---|
+| [Project setup and pipeline](../README.md) | Data requirements, installation, automatic execution and output locations |
+| [Forecasting](forecasting/README.md) | Model estimation, forecast tests, notebooks and output schemas |
+| [Portfolio](portfolio/README.md) | Portfolio construction, performance tests, notebooks and output schemas |
+| [Archive](archive/README.md) | Earlier experiments and historical workflow |
 
-`research_config.py` defines the ETFs, sample window, selected models, benchmark and shared
-comparison blocks. `portfolio/config.py` holds portfolio-only settings. `utils/paths.py` resolves
-paths from the checkout; start notebook kernels anywhere inside this repository. Forecast tests
-run in their evaluation notebooks. `utils/forecast_data.py` defines forecast filenames and validates
-coverage, dates and realised values.
+## Shared configuration
 
-## Research questions and notebook map
+[research_config.py](research_config.py) defines the ETFs, sample window, selected models,
+benchmark and comparison blocks. [portfolio/config.py](portfolio/config.py) holds portfolio-only
+settings. Restart notebook kernels after changing imported configuration.
 
-| Question | Notebook | Shared block |
-|---|---|---|
-| Does macro information help within GARCH? | [e1](forecasting/evaluation/e1_garch_family.ipynb) | B1 |
-| Does the full macro set improve Elastic Net over past volatility alone? | [e2](forecasting/evaluation/e2_macro_value.ipynb) | B2 |
-| How much does VIX contribute in Elastic Net? | [e3](forecasting/evaluation/e3_vix_effect_en.ipynb) | B3 |
-| Does the VIX finding hold in XGBoost? | [e4](forecasting/evaluation/e4_vix_effect_xgb.ipynb) | B4 |
-| Does XGBoost outperform Elastic Net with matched macro inputs? | [e5](forecasting/evaluation/e5_linear_vs_nonlinear.ipynb) | B5 |
-| Which models beat the historical-volatility benchmark? | [e6](forecasting/evaluation/e6_naive_vs_all_models.ipynb) | Selected models vs benchmark |
-| Do forecast gains improve portfolio performance? | [p1](portfolio/p1_build_portfolios.ipynb), [p2](portfolio/p2_portfolio_eval.ipynb), [p3](portfolio/p3_forecast_vs_portfolio.ipynb) | B0–B5 |
+[utils/paths.py](utils/paths.py) resolves paths from the checkout; start notebook kernels anywhere
+inside this repository. [utils/forecast_data.py](utils/forecast_data.py) defines forecast filenames
+and validates coverage for every selected model, ETF and out-of-sample month, with dates and
+realised values matching the current variance data. Shared portfolio functions live in
+[utils/portfolio_utils.py](utils/portfolio_utils.py).
 
-## Run order
+## Shared comparison blocks
 
-The root [notebook runner](../run_all.ipynb) executes the complete workflow,
-including all robustness analyses. It labels the report's tables and figures with source sections
-and result files, and links to fresh executed notebooks. Runs overwrite the normal research outputs.
-Optional online macro-data checks are off by default.
+The `BLOCKS` definition in [research_config.py](research_config.py) is the source for these pairs.
+In each pair, a is the richer model; a positive difference means a has lower forecast loss or a
+higher Sharpe ratio. Forecast tests run in e1–e6; portfolio p2 tests B0–B5 with Ledoit-Wolf
+Sharpe ratio tests, so the forecast and portfolio answers can be matched.
 
-To run the complete workflow automatically, use `python3 run_pipeline.py --start fetch`
-from the repository root, or `--start raw` to rebuild from saved raw data without downloads.
-See the [pipeline instructions](../README.md#run-the-analysis) for prerequisites and outputs.
+| Block | Question | Pairs (a vs b) | Forecast notebook |
+|---|---|---|---|
+| B0 | Does fitting a historical model improve on simple volatility timing? | `garch` vs `hist_rw` | Covered by e6 |
+| B1 | Does macro help within GARCH? | `garch_midas_baa10y` vs `garch` | [e1](forecasting/evaluation/e1_garch_family.ipynb) |
+| B2 | Do macro + VIX help a linear model that uses only past volatility? | `en_full_macro` vs `en_no_macro` | [e2](forecasting/evaluation/e2_macro_value.ipynb) |
+| B3 | Is VIX doing all the work in Elastic Net? | `en_full_macro` vs `en_no_vix` · `en_vix_only` vs `en_no_macro` · `en_full_macro` vs `en_vix_only` | [e3](forecasting/evaluation/e3_vix_effect_en.ipynb) |
+| B4 | Do the VIX findings hold in XGBoost? | `xgb_full_macro` vs `xgb_no_macro` · `xgb_full_macro` vs `xgb_no_vix` · `xgb_vix_only` vs `xgb_no_macro` · `xgb_full_macro` vs `xgb_vix_only` | [e4](forecasting/evaluation/e4_vix_effect_xgb.ipynb) |
+| B5 | With matched inputs, does XGBoost beat Elastic Net? | `xgb_*` vs `en_*` for no macro, macro without VIX, VIX only, full macro + VIX | [e5](forecasting/evaluation/e5_linear_vs_nonlinear.ipynb) |
+| — | Which models beat the historical-volatility benchmark? | Every selected model vs `hist_rw` | [e6](forecasting/evaluation/e6_naive_vs_all_models.ipynb) |
 
-1. Install the dependencies in the repository's `requirements.txt` and prepare `dataset/`.
-2. Review `research_config.py` and `portfolio/config.py`. Restart kernels after changing imported configuration.
-3. Run **b0 → b1 → b2 → b3** to produce the benchmark, GARCH, Elastic Net and XGBoost forecasts.
-4. Run **e1 → e2 → e3 → e4 → e5 → e6** for forecast evaluation. p3 reads the e6 tables.
-5. Run **r1 → r2 → r3** in `forecasting/robustness/`: Elastic Net crisis exclusions,
-   `r2_crisis_naive_vs_garch_en.ipynb` for GARCH and Elastic Net against the benchmark,
-   and `r3_rolling_window_en.ipynb` for the Elastic Net rolling-window comparison.
-6. Run **p1 → p2 → p3** to build portfolios, evaluate performance and connect it to forecast accuracy.
-7. Run **rp1 → rp2** in `portfolio/robustness/` for leverage and reference-variance checks.
+## Workflow dependencies
 
-The runner includes all of these steps, plus the price EDA notebook.
+Use the [root pipeline instructions](../README.md#run-the-analysis) for automatic execution.
+For manual execution, follow the [forecasting run order](forecasting/README.md#how-to-run), then
+the [portfolio run order](portfolio/README.md#how-to-run).
 
-The active forecast files are `hist_rw_forecasts.csv`, `garch_forecasts.csv`, `en_forecasts.csv`
-and `xgb_forecasts.csv`. Build notebooks write them directly to `forecasting/forecasts/`.
-Evaluation notebooks write to `forecasting/results/`. p3 reads `e6_losses.csv` and
-`e6_evaluation.csv`. Portfolio outputs stay
-under `portfolio/results/portfolios/` and `portfolio/results/eval/`.
-
-Archived experiments are excluded from this run order. Source notebook output cells can be historical snapshots; the runner
-prints where it saves fresh executed copies. Use those copies for report tables and figures.
+Build notebooks supply the forecasts used by both branches. Portfolio p3 additionally reads
+`forecasting/results/e6_losses.csv` and `forecasting/results/e6_evaluation.csv`, so rerun e6
+whenever forecasts change before running p3. p3 compares forecast-accuracy and portfolio-performance
+rankings to answer whether forecast gains translate into better portfolios.

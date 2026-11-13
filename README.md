@@ -13,12 +13,7 @@ portfolios. The out-of-sample period is March 2008 to December 2025.
 │   └── macro_variables/       # Raw macro series, alignment and transformations
 ├── models/
 │   ├── research_config.py     # Selected models, sample and comparison blocks
-│   ├── forecasting/
-│   │   ├── build/             # b0–b3: forecast estimation
-│   │   ├── forecasts/         # Model forecast CSVs
-│   │   ├── evaluation/        # e1–e6: forecast comparisons
-│   │   ├── results/           # Forecast evaluation tables
-│   │   └── robustness/        # Crisis and rolling-window analyses
+│   ├── forecasting/           # Forecast estimation, evaluation and robustness
 │   ├── portfolio/             # p1–p3, portfolio settings and results
 │   ├── utils/                 # Shared paths and portfolio functions
 │   └── archive/               # Earlier experiments
@@ -53,8 +48,7 @@ python3 -m pip install -r requirements.txt
 
 Open [run_all.ipynb](run_all.ipynb) for progress and links to fresh executed notebooks.
 It begins with the report's table/figure source index and runs the complete pipeline,
-including embedded and standalone robustness analyses. Runs overwrite the normal research outputs.
-Archived experiments are excluded from execution.
+including embedded and standalone robustness analyses. Archived experiments are excluded from execution.
 
 The notebook defaults to saved raw data, rebuilding forecasts, and using the existing GARCH
 fit cache. Set `INCLUDE_DATA_CHECKS=True` to add the two online FRED/ALFRED diagnostic notebooks
@@ -107,7 +101,8 @@ python3 run_pipeline.py --start raw --include-data-checks --dry-run
 
 Runs overwrite processed data and result CSVs. Source notebook displays can be older
 snapshots; the runner prints where it saves fresh executed copies. Full model fitting can take
-substantial time. Preview the execution order with `--dry-run`.
+substantial time.
 
-See [the model guide](models/README.md) and [the portfolio guide](models/portfolio/README.md)
-for individual notebook descriptions and manual execution.
+See [the model guide](models/README.md) for shared configuration and comparison blocks,
+and the [forecasting](models/forecasting/README.md) and [portfolio](models/portfolio/README.md)
+guides for methods, individual notebooks, manual execution and output schemas.
