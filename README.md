@@ -30,7 +30,7 @@ The following files must be present:
 ```text
 dataset/price/raw/sector_etf_prices_with_xlre.csv
 dataset/price/raw/risk_free_rate_returns.csv
-dataset/macro_variables/raw/   # Fourteen saved macro series
+dataset/macro_variables/raw/   
 ```
 
 Price-cleaning scripts create daily excess returns and monthly realised variance.
