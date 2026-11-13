@@ -6,6 +6,7 @@ this file's location, so the notebooks work from any working directory.
 """
 from pathlib import Path
 from .paths import PROJECT_ROOT, FORECAST_DIR, PORTFOLIO_RESULTS_DIR
+from .forecast_data import FORECAST_FILES, expected_forecast_months, validate_forecast_frame
 
 import numpy as np
 import pandas as pd
@@ -23,16 +24,6 @@ EVAL_DIR = RESULTS_DIR / "eval"              # written by p2_portfolio_eval and 
 
 CONTROL = "control"   # name of the re-levering control portfolio (expanding spec only)
 BH = "BH"             # name of the buy-and-hold benchmark in the result tables
-
-# One tidy forecast file per model family. Columns: model, etf, date, actual_logRV, actual_RV,
-# fc_log, sigma2, fc_level. The `model` column holds the variant (e.g. en_full_macro).
-FORECAST_FILES = {
-    "Historical": "hist_rw_forecasts.csv",
-    "Garch": "garch_forecasts.csv",
-    "Elastic Net": "en_forecasts.csv",
-    "XGBoost": "xgb_forecasts.csv",
-}
-
 
 # ---------------------------------------------------------------------------
 # Data loading
@@ -66,47 +57,21 @@ def training_window(train_start, train_months):
 def load_forecast_files(selected, forecast_files=FORECAST_FILES, forecast_dir=FORECAST_DIR):
     """Read the tidy forecast file of each selected family.
 
-    Returns (raw, available): raw maps family -> its forecast file, available maps family -> the
-    selected variants found in that file. Variants not in the file yet are skipped with a notice.
+    Returns (raw, available). Every selected model must cover the configured sample.
     """
+    from research_config import TICKERS, TRAIN_START, TRAIN_MONTHS
+
+    actuals = pd.read_csv(PROJECT_ROOT / "dataset/price/clean/realized_variance.csv", parse_dates=["date"])
+    months = expected_forecast_months(actuals, TRAIN_START, TRAIN_MONTHS)
     raw, available = {}, {}
     for family, variants in selected.items():
         df = pd.read_csv(Path(forecast_dir) / forecast_files[family], parse_dates=["date"])
-        required = {"model", "etf", "date", "actual_logRV", "actual_RV", "fc_log", "fc_level"}
-        if not required.issubset(df.columns):
-            raise ValueError(f"{forecast_files[family]} is missing columns: {sorted(required - set(df.columns))}")
-        if df[["model", "etf", "date"]].isna().any().any() or df.duplicated(["model", "etf", "date"]).any():
-            raise ValueError(f"{forecast_files[family]} has missing or duplicate model/ETF/origin keys")
-        values = ["actual_logRV", "actual_RV", "fc_log", "fc_level"]
-        if not np.isfinite(df[values].to_numpy()).all() or (df[["actual_RV", "fc_level"]] <= 0).any().any():
-            raise ValueError(f"{forecast_files[family]} contains invalid realized or forecast values")
-        if not df["date"].eq(df["date"].dt.to_period("M").dt.to_timestamp("M")).all():
-            raise ValueError(f"{forecast_files[family]} origins must be calendar month ends")
-        if not np.allclose(np.log(df["actual_RV"]), df["actual_logRV"], rtol=1e-10, atol=1e-12):
-            raise ValueError(f"{forecast_files[family]} has inconsistent realized log/level values")
-        in_file = set(df["model"].unique())
-        for v in variants:
-            if v not in in_file:
-                print(f"NOTICE: {v} is not in {forecast_files[family]} yet; it and its pairs are skipped")
+        validate_forecast_frame(df, actuals, variants, TICKERS, months, forecast_files[family])
         # `date` is the forecast origin t; the forecast is for holding month t+1
         df["holding_month"] = df["date"] + pd.offsets.MonthEnd(1)
-        if "target_date" in df and not pd.to_datetime(df["target_date"]).eq(df["holding_month"]).all():
-            raise ValueError(f"{forecast_files[family]} target_date must be the next month end")
         raw[family] = df
-        available[family] = [v for v in variants if v in in_file]
+        available[family] = list(variants)
     return raw, available
-
-
-def check_alignment(df, variant, rv_monthly):
-    """Correlation of actual_RV with price-data RV of the same month t and of month t+1."""
-    sub = df[df["model"] == variant]
-    out = {}
-    for label, months in [("same month (t)", sub["date"]), ("next month (t+1)", sub["holding_month"])]:
-        rv = np.array([rv_monthly.at[m, e] if m in rv_monthly.index else np.nan
-                       for m, e in zip(months, sub["etf"])])
-        ok = ~np.isnan(rv)
-        out[label] = np.corrcoef(sub["actual_RV"].to_numpy()[ok], rv[ok])[0, 1]
-    return out
 
 
 def forecast_wide(df, variant, column, tickers):

@@ -14,10 +14,9 @@ TICKERS = ["XLB", "XLE", "XLF", "XLI", "XLY"]   # cyclical bucket
 TRAIN_START = "2003-03"    # 2003-01 is dropped and 2003-02 has no lagged value
 TRAIN_MONTHS = 60          # training window 2003-03 to 2008-02; out-of-sample is every month after it
 
-# Model family (a key of FORECAST_FILES in utils/portfolio_utils.py) -> variants (values of the
-# `model` column). A variant that is not yet in its forecast file is skipped with a notice, and so
-# are the pairs that use it. Every variant must have a forecast for the first out-of-sample month
-# (2008-03): the *_har Elastic Net variants start in 2009-02, so they are left out.
+# Model family (a key of FORECAST_FILES in utils/forecast_data.py) -> variants (values of the
+# `model` column). Every selected variant must cover all five ETFs and every out-of-sample
+# month from 2008-03 onwards.
 SELECTED = {
     "Historical": ["hist_rw"],
     "Garch": ["garch", "garch_midas_baa10y"],

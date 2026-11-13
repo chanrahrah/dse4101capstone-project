@@ -16,6 +16,7 @@ models/
 ├── research_config.py                  ETFs, sample, SELECTED models, BENCHMARK, BLOCKS
 ├── utils/
 │   ├── paths.py                        project paths, resolved from the checkout
+│   ├── forecast_data.py                forecast files, coverage and target checks
 │   └── portfolio_utils.py              loading, construction, tests and plots
 ├── forecasting/
 │   ├── build/                          forecast notebooks (b0_hist_rw builds the benchmark)
@@ -42,6 +43,11 @@ inside the checkout and always write to `portfolio/results/` (the robustness not
 and are not part of the run order.
 
 ## How to run
+
+For the complete data-to-portfolio workflow, use the root [notebook runner](../../run_all.ipynb).
+It includes p1–p3 and rp1–rp2, with report
+Table 6, Tables D1–D11 and Figures 2–4 mapped to their source sections and saved results.
+Runs overwrite the normal research outputs.
 
 1. Edit `research_config.py` or `config.py` if needed, then restart the kernel of any open
    notebook (Python caches imported modules).
@@ -97,8 +103,8 @@ addition helps: a has the higher Sharpe ratio, or the lower forecast loss.
 | B4 | Effect of VIX in XGBoost (robustness check for B3) | B4.0 `xgb_full_macro` vs `xgb_no_macro` · B4.1 `xgb_full_macro` vs `xgb_no_vix` · B4.2 `xgb_vix_only` vs `xgb_no_macro` · B4.3 `xgb_full_macro` vs `xgb_vix_only` |
 | B5 | With matched macro inputs, does XGBoost beat Elastic Net? | B5.1 no macro · B5.2 macro without VIX · B5.3 VIX only · B5.4 full macro + VIX (`xgb_*` vs `en_*`) |
 
-A selected model missing from its forecast file is skipped with a notice by p1, together with the
-pairs that use it.
+Every selected model must cover the full out-of-sample window for all five ETFs.
+p1 stops if forecasts are missing or their realised values disagree with the price data.
 
 ## What each notebook does
 
@@ -142,13 +148,13 @@ pairs that use it.
 | File | Written by | Contents |
 |---|---|---|
 | `rp1_different_leverages.csv` | rp1 | Per cap and model: SR, ΔSR and Ledoit-Wolf p vs BH, α on BH, % capped, max weight, c |
-| `rp2_timing_vs_relevering.csv` | rp2 | Control regressions under the expanding σ̄² (formerly `extension.csv` from p2) |
+| `rp2_timing_vs_relevering.csv` | rp2 | Control regressions under the expanding σ̄² |
 
 ## Adding a model or a comparison
 
 1. Put its tidy forecast file in `models/forecasting/forecasts/`, with columns `model, etf, date,
    target_date, actual_logRV, actual_RV, fc_log, sigma2, fc_level`; a row dated t forecasts month
    t+1. Its first forecast must be for 2008-03 or earlier.
-2. If it is a new model family, add the file to `FORECAST_FILES` in `utils/portfolio_utils.py`.
+2. If it is a new model family, add the file to `FORECAST_FILES` in `utils/forecast_data.py`.
 3. Add the variant to `SELECTED`, and any pairs to a block in `BLOCKS`, in `research_config.py`.
-4. Rerun p1 → p2, then e6 and p3.
+4. Rerun e6 → p1 → p2 → p3.

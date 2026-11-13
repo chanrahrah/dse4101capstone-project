@@ -10,7 +10,7 @@ df = pd.read_csv(
     parse_dates=["date"]
 )
 
-# Daily excess returns for the five Elastic Net Phase 2 ETFs.
+# Daily excess returns for the five cyclical ETFs.
 tickers = ["XLI", "XLB", "XLE", "XLY", "XLF"]
 ret_cols = [f"xret_{ticker}" for ticker in tickers]
 
